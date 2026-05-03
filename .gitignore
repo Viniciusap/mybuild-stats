@@ -1,0 +1,39 @@
+# dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# production
+build/
+
+# env files
+.env
+.env.local
+.env.*.local
+
+# logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# generated data (runtime-managed, per-machine)
+data/snapshots.json
+data/build-config.json
+data/events.json
+data/price-cache.json
+
+# cached images (downloaded at runtime)
+public/component-images/
+public/pc-photo/
+
+# TypeScript build info
+tsconfig.tsbuildinfo
+
+# PM2
+.pm2/

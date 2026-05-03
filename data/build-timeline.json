@@ -1,0 +1,30 @@
+[
+  {
+    "date": "2024-06-01",
+    "component": "Build Completo",
+    "eventType": "added",
+    "notes": "Montagem inicial: Ryzen 7 5700X + B550M Aorus Elite + 32GB DDR4 3200 + MP600 Elite 1TB",
+    "price": 5200
+  },
+  {
+    "date": "2025-12-01",
+    "component": "NVIDIA GeForce RTX 5060",
+    "eventType": "added",
+    "notes": "GPU upgrade de placeholder (APU) para RTX 5060 8GB",
+    "price": 2800
+  },
+  {
+    "date": "2025-12-19",
+    "component": "Windows 11 Pro for Workstations",
+    "eventType": "added",
+    "notes": "Instalação limpa do SO. Build 26200.",
+    "price": 0
+  },
+  {
+    "date": "2026-01-20",
+    "component": "NVIDIA Driver 32.0.15.9186",
+    "eventType": "driver_update",
+    "notes": "Atualização para driver WHQL mais recente disponível.",
+    "price": 0
+  }
+]
