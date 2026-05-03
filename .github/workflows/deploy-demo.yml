@@ -183,7 +183,11 @@ jobs:
           )
           c = c.replace(
               "if (!query.trim()) return",
-              "if (DEMO || !query.trim()) return"
+              "if (DEMO) { setNoApi(true); return }\n    if (!query.trim()) return"
+          )
+          c = c.replace(
+              "Search unavailable — try again in a few seconds",
+              "Search unavailable in demo mode"
           )
           c = c.replace(
               "  const selectImage = useCallback(async (img: ImageResult) => {\n    setSaving(img.imageUrl)",
