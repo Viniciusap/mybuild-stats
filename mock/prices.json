@@ -1,0 +1,11 @@
+{
+  "prices": [
+    { "componentId": "ryzen-9-5900x", "componentName": "AMD Ryzen 9 5900X", "store": "KaBuM", "price": 1180, "url": "", "timestamp": "2026-05-03T12:00:00.000Z" },
+    { "componentId": "ryzen-9-5950x", "componentName": "AMD Ryzen 9 5950X", "store": "Pichau", "price": 1890, "url": "", "timestamp": "2026-05-03T12:00:00.000Z" },
+    { "componentId": "rtx-5070", "componentName": "NVIDIA GeForce RTX 5070", "store": "Terabyte Shop", "price": 4200, "url": "", "timestamp": "2026-05-03T12:00:00.000Z" },
+    { "componentId": "rtx-5080", "componentName": "NVIDIA GeForce RTX 5080", "store": "KaBuM", "price": 7800, "url": "", "timestamp": "2026-05-03T12:00:00.000Z" },
+    { "componentId": "ddr4-64gb-3600", "componentName": "64GB DDR4 3600MHz (2x32GB)", "store": "Pichau", "price": 510, "url": "", "timestamp": "2026-05-03T12:00:00.000Z" },
+    { "componentId": "nvme-gen4-2tb", "componentName": "NVMe Gen4 2TB", "store": "Terabyte Shop", "price": 520, "url": "", "timestamp": "2026-05-03T12:00:00.000Z" }
+  ],
+  "alerts": []
+}

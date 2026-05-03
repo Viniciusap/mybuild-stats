@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-05-03T12:00:00.000Z",
+  "cpu": { "brand": "AMD Ryzen 7 5700X", "manufacturer": "AMD", "cores": 8, "physicalCores": 8, "threads": 16, "speed": 3.4, "speedMax": 4.6, "socket": "AM4", "temperature": 52, "load": 12 },
+  "gpu": [{ "name": "NVIDIA GeForce RTX 5060", "vram": 8192, "driverVersion": "32.0.15.9186", "driverDate": "2026-01-20", "temperature": 41, "utilizationGpu": 5, "utilizationMemory": 3 }],
+  "ram": {
+    "total": 34359738368, "used": 12884901888, "free": 21474836480, "usedPercent": 37.5,
+    "sticks": [
+      { "size": 17179869184, "speed": 3200, "manufacturer": "Kingston", "partNum": "KF432C16BB1/16", "formFactor": "DIMM", "type": "DDR4", "slot": "DIMM_A1" },
+      { "size": 17179869184, "speed": 3200, "manufacturer": "Kingston", "partNum": "KF432C16BB1/16", "formFactor": "DIMM", "type": "DDR4", "slot": "DIMM_B1" }
+    ]
+  },
+  "storage": [{ "name": "Corsair MP600 Elite 1TB", "type": "NVMe", "size": 1000204886016, "interface": "PCIe 4.0 x4", "temperature": 38, "healthStatus": "OK", "percentUsed": 45 }],
+  "mobo": { "manufacturer": "Gigabyte", "model": "B550M AORUS ELITE", "version": "1.0" },
+  "bios": { "vendor": "American Megatrends", "version": "F17", "releaseDate": "2023-08-15", "daysSinceRelease": 627 },
+  "os": { "platform": "win32", "distro": "Microsoft Windows 11 Pro for Workstations", "release": "11", "build": "26200", "installDate": "2025-12-19", "uptime": 86400, "uptimeHuman": "1d 0h 0m" }
+}
