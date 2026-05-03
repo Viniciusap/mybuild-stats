@@ -2,6 +2,8 @@
 
 A local, self-hosted hardware dashboard for Windows. Monitors your PC in real time, tracks component depreciation, watches upgrade prices, and runs system maintenance tasks — all from a cyberpunk-themed web UI.
 
+**[Live Demo](https://viniciusap.github.io/mybuild-stats/)** — static preview with mock data.
+
 ---
 
 ## Purpose
