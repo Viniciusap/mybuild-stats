@@ -1,0 +1,204 @@
+name: Deploy Demo to GitHub Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Create demo support files
+        run: |
+          mkdir -p public/mock
+
+          cat > lib/demo.ts << 'EOFILE'
+          export const DEMO = process.env.NEXT_PUBLIC_DEMO === 'true'
+          const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
+
+          export function apiUrl(path: string): string {
+            if (!DEMO) return path
+            const key = path.replace(/^\/api\//, '').split('?')[0]
+            return `${BASE}/mock/${key}.json`
+          }
+          EOFILE
+
+          cat > public/mock/hardware.json << 'EOFILE'
+          {
+            "timestamp": "2026-05-03T12:00:00.000Z",
+            "cpu": { "brand": "AMD Ryzen 7 5700X", "manufacturer": "AMD", "cores": 8, "physicalCores": 8, "threads": 16, "speed": 3.4, "speedMax": 4.6, "socket": "AM4", "temperature": 52, "load": 12 },
+            "gpu": [{ "name": "NVIDIA GeForce RTX 5060", "vram": 8192, "driverVersion": "32.0.15.9186", "driverDate": "2026-01-20", "temperature": 41, "utilizationGpu": 5, "utilizationMemory": 3 }],
+            "ram": {
+              "total": 34359738368, "used": 12884901888, "free": 21474836480, "usedPercent": 37.5,
+              "sticks": [
+                { "size": 17179869184, "speed": 3200, "manufacturer": "Kingston", "partNum": "KF432C16BB1/16", "formFactor": "DIMM", "type": "DDR4", "slot": "DIMM_A1" },
+                { "size": 17179869184, "speed": 3200, "manufacturer": "Kingston", "partNum": "KF432C16BB1/16", "formFactor": "DIMM", "type": "DDR4", "slot": "DIMM_B1" }
+              ]
+            },
+            "storage": [{ "name": "Corsair MP600 Elite 1TB", "type": "NVMe", "size": 1000204886016, "interface": "PCIe 4.0 x4", "temperature": 38, "healthStatus": "OK", "percentUsed": 45 }],
+            "mobo": { "manufacturer": "Gigabyte", "model": "B550M AORUS ELITE", "version": "1.0" },
+            "bios": { "vendor": "American Megatrends", "version": "F17", "releaseDate": "2023-08-15", "daysSinceRelease": 627 },
+            "os": { "platform": "win32", "distro": "Microsoft Windows 11 Pro for Workstations", "release": "11", "build": "26200", "installDate": "2025-12-19", "uptime": 86400, "uptimeHuman": "1d 0h 0m" }
+          }
+          EOFILE
+
+          cat > public/mock/prices.json << 'EOFILE'
+          {
+            "prices": [
+              { "componentId": "ryzen-9-5900x", "componentName": "AMD Ryzen 9 5900X", "store": "KaBuM", "price": 1180, "url": "", "timestamp": "2026-05-03T12:00:00.000Z" },
+              { "componentId": "ryzen-9-5950x", "componentName": "AMD Ryzen 9 5950X", "store": "Pichau", "price": 1890, "url": "", "timestamp": "2026-05-03T12:00:00.000Z" },
+              { "componentId": "rtx-5070", "componentName": "NVIDIA GeForce RTX 5070", "store": "Terabyte Shop", "price": 4200, "url": "", "timestamp": "2026-05-03T12:00:00.000Z" },
+              { "componentId": "rtx-5080", "componentName": "NVIDIA GeForce RTX 5080", "store": "KaBuM", "price": 7800, "url": "", "timestamp": "2026-05-03T12:00:00.000Z" },
+              { "componentId": "ddr4-64gb-3600", "componentName": "64GB DDR4 3600MHz (2x32GB)", "store": "Pichau", "price": 510, "url": "", "timestamp": "2026-05-03T12:00:00.000Z" },
+              { "componentId": "nvme-gen4-2tb", "componentName": "NVMe Gen4 2TB", "store": "Terabyte Shop", "price": 520, "url": "", "timestamp": "2026-05-03T12:00:00.000Z" }
+            ],
+            "alerts": []
+          }
+          EOFILE
+
+          cat > public/mock/timeline.json << 'EOFILE'
+          {
+            "events": [
+              { "date": "2024-06-01", "component": "Build Completo", "eventType": "added", "notes": "Montagem inicial: Ryzen 7 5700X + B550M Aorus Elite + 32GB DDR4 3200 + MP600 Elite 1TB", "price": 5200 },
+              { "date": "2025-12-01", "component": "NVIDIA GeForce RTX 5060", "eventType": "added", "notes": "GPU upgrade de placeholder (APU) para RTX 5060 8GB", "price": 2800 },
+              { "date": "2025-12-19", "component": "Windows 11 Pro for Workstations", "eventType": "added", "notes": "Instalação limpa do SO. Build 26200.", "price": 0 },
+              { "date": "2026-01-20", "component": "NVIDIA Driver 32.0.15.9186", "eventType": "driver_update", "notes": "Atualização para driver WHQL mais recente disponível.", "price": 0 }
+            ]
+          }
+          EOFILE
+
+          echo '{ "cpu": null, "gpu": null, "ram": null, "storage": null }' > public/mock/component-image.json
+          echo '{ "name": "", "hasImage": false }' > public/mock/case-search.json
+
+      - name: Patch source files for demo mode
+        run: |
+          python3 << 'PYEOF'
+          import re
+
+          # ── next.config.mjs ───────────────────────────────────────────────
+          with open('next.config.mjs', 'w') as f:
+              f.write("""\
+          const isDemo = process.env.NEXT_PUBLIC_DEMO === 'true'
+
+          /** @type {import('next').NextConfig} */
+          const nextConfig = {
+            ...(isDemo && {
+              output: 'export',
+              basePath: '/mybuild-stats',
+              trailingSlash: true,
+              images: { unoptimized: true },
+            }),
+            webpack: (config, { isServer }) => {
+              if (isServer) {
+                config.externals.push('osx-temperature-sensor', 'macos-temperature-sensor')
+              } else {
+                config.externals = config.externals || []
+                config.externals.push('systeminformation')
+              }
+              return config
+            },
+            ...(!isDemo && {
+              experimental: {
+                instrumentationHook: true,
+              },
+            }),
+          }
+
+          export default nextConfig
+          """)
+
+          # ── app/page.tsx ──────────────────────────────────────────────────
+          with open('app/page.tsx', 'r') as f:
+              c = f.read()
+
+          c = c.replace(
+              "import { clsx } from 'clsx'",
+              "import { clsx } from 'clsx'\nimport { DEMO, apiUrl } from '@/lib/demo'"
+          )
+          c = c.replace(
+              "useSWR<HardwareSnapshot>('/api/hardware', fetcher, { refreshInterval: 15_000 })",
+              "useSWR<HardwareSnapshot>(apiUrl('/api/hardware'), fetcher, { refreshInterval: DEMO ? 0 : 15_000 })"
+          )
+          c = c.replace(
+              "useSWR<PricesData>('/api/prices', fetcher, { refreshInterval: 300_000 })",
+              "useSWR<PricesData>(apiUrl('/api/prices'), fetcher, { refreshInterval: DEMO ? 0 : 300_000 })"
+          )
+          c = c.replace(
+              "useSWR<TimelineData>('/api/timeline', fetcher)",
+              "useSWR<TimelineData>(apiUrl('/api/timeline'), fetcher)"
+          )
+          c = c.replace(
+              "useSWR<ComponentImages>('/api/component-image', fetcher)",
+              "useSWR<ComponentImages>(apiUrl('/api/component-image'), fetcher)"
+          )
+          c = c.replace(
+              "if (componentImages) void autoFetchImages(componentImages)",
+              "if (!DEMO && componentImages) void autoFetchImages(componentImages)"
+          )
+          c = c.replace(
+              "async function triggerPriceCheck() {\n    setChecking(true)",
+              "async function triggerPriceCheck() {\n    if (DEMO) return\n    setChecking(true)"
+          )
+
+          with open('app/page.tsx', 'w') as f:
+              f.write(c)
+
+          # ── components/CaseSearchCard.tsx ─────────────────────────────────
+          with open('components/CaseSearchCard.tsx', 'r') as f:
+              c = f.read()
+
+          c = c.replace(
+              "import { clsx } from 'clsx'",
+              "import { clsx } from 'clsx'\nimport { DEMO, apiUrl } from '@/lib/demo'"
+          )
+          c = c.replace(
+              "useSWR<CaseConfig>('/api/case-search', fetcher)",
+              "useSWR<CaseConfig>(apiUrl('/api/case-search'), fetcher)"
+          )
+          c = c.replace(
+              "if (!query.trim()) return",
+              "if (DEMO || !query.trim()) return"
+          )
+          c = c.replace(
+              "  const selectImage = useCallback(async (img: ImageResult) => {\n    setSaving(img.imageUrl)",
+              "  const selectImage = useCallback(async (img: ImageResult) => {\n    if (DEMO) return\n    setSaving(img.imageUrl)"
+          )
+          c = c.replace(
+              "if (!file.type.startsWith('image/')) return",
+              "if (DEMO || !file.type.startsWith('image/')) return"
+          )
+          c = c.replace(
+              "  const clearCase = useCallback(async () => {\n    await fetch('/api/case-search', { method: 'DELETE' })",
+              "  const clearCase = useCallback(async () => {\n    if (DEMO) return\n    await fetch('/api/case-search', { method: 'DELETE' })"
+          )
+
+          with open('components/CaseSearchCard.tsx', 'w') as f:
+              f.write(c)
+
+          print('Patches applied.')
+          PYEOF
+
+      - name: Build static demo
+        run: npm run build
+        env:
+          NEXT_PUBLIC_DEMO: "true"
+          NEXT_PUBLIC_BASE_PATH: /mybuild-stats
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./out
