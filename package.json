@@ -14,7 +14,7 @@
     "react-dom": "^18",
     "systeminformation": "^5.23.5",
     "swr": "^2.2.5",
-    "node-cron": "^3.0.3",
+    "node-cron": "^4.2.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.441.0"
   },
