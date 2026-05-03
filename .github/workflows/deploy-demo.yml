@@ -83,6 +83,19 @@ jobs:
           echo '{ "cpu": null, "gpu": null, "ram": null, "storage": null }' > public/mock/component-image.json
           echo '{ "name": "", "hasImage": false }' > public/mock/case-search.json
 
+          cat > public/mock/automations.json << 'EOFILE'
+          {
+            "tasks": [
+              { "id": "flush-dns",        "label": "Flush DNS Cache",             "description": "Resets the Windows DNS resolution cache.",                              "requiresAdmin": false, "estimatedSeconds": 3   },
+              { "id": "clean-temp",       "label": "Clean TEMP Folder",           "description": "Removes temporary files from %TEMP% and C:\\Windows\\Temp.",           "requiresAdmin": false, "estimatedSeconds": 15  },
+              { "id": "drivers-check",    "label": "Check Drivers",               "description": "Lists installed drivers and flags those older than 365 days.",          "requiresAdmin": false, "estimatedSeconds": 20  },
+              { "id": "winget-upgrade",   "label": "Upgrade All Packages (winget)","description": "Updates all installed packages via winget.",                          "requiresAdmin": true,  "estimatedSeconds": 120 },
+              { "id": "dism-restorehealth","label": "DISM — Restore Health",      "description": "Checks and repairs the Windows image (may take 10+ minutes).",         "requiresAdmin": true,  "estimatedSeconds": 600 },
+              { "id": "sfc-scan",         "label": "SFC — Scan System Files",     "description": "Verifies integrity of Windows system files.",                          "requiresAdmin": true,  "estimatedSeconds": 180 }
+            ]
+          }
+          EOFILE
+
       - name: Patch source files for demo mode
         run: |
           python3 << 'PYEOF'
@@ -186,6 +199,26 @@ jobs:
           )
 
           with open('components/CaseSearchCard.tsx', 'w') as f:
+              f.write(c)
+
+          # ── app/automations/page.tsx ──────────────────────────────────────
+          with open('app/automations/page.tsx', 'r') as f:
+              c = f.read()
+
+          c = c.replace(
+              "import { Play, ShieldAlert, CheckCircle, XCircle, Clock, Terminal } from 'lucide-react'",
+              "import { Play, ShieldAlert, CheckCircle, XCircle, Clock, Terminal } from 'lucide-react'\nimport { DEMO, apiUrl } from '@/lib/demo'"
+          )
+          c = c.replace(
+              "fetch('/api/automations')",
+              "fetch(apiUrl('/api/automations'))"
+          )
+          c = c.replace(
+              "  async function runTask(id: string) {\n    setSelected(id)",
+              "  async function runTask(id: string) {\n    if (DEMO) return\n    setSelected(id)"
+          )
+
+          with open('app/automations/page.tsx', 'w') as f:
               f.write(c)
 
           print('Patches applied.')
