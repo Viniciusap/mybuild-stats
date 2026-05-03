@@ -201,6 +201,26 @@ jobs:
           with open('components/CaseSearchCard.tsx', 'w') as f:
               f.write(c)
 
+          # ── components/ImageSearchModal.tsx ──────────────────────────────
+          with open('components/ImageSearchModal.tsx', 'r') as f:
+              c = f.read()
+
+          c = c.replace(
+              "import { X, Search, RefreshCw, Check } from 'lucide-react'",
+              "import { X, Search, RefreshCw, Check } from 'lucide-react'\nimport { DEMO } from '@/lib/demo'"
+          )
+          c = c.replace(
+              "  const runSearch = useCallback(async (q: string) => {\n    if (!q.trim()) return",
+              "  const runSearch = useCallback(async (q: string) => {\n    if (DEMO) { setError('Image search unavailable in demo mode.'); return }\n    if (!q.trim()) return"
+          )
+          c = c.replace(
+              "  const selectImage = useCallback(async (img: ImageResult) => {\n    setSaving(img.imageUrl)",
+              "  const selectImage = useCallback(async (img: ImageResult) => {\n    if (DEMO) return\n    setSaving(img.imageUrl)"
+          )
+
+          with open('components/ImageSearchModal.tsx', 'w') as f:
+              f.write(c)
+
           # ── app/automations/page.tsx ──────────────────────────────────────
           with open('app/automations/page.tsx', 'r') as f:
               c = f.read()
