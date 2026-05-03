@@ -191,6 +191,9 @@ jobs:
           print('Patches applied.')
           PYEOF
 
+      - name: Remove API routes (incompatible with static export)
+        run: rm -rf app/api instrumentation.ts
+
       - name: Build static demo
         run: npm run build
         env:
