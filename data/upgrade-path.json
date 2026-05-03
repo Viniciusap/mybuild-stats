@@ -1,0 +1,97 @@
+{
+  "cpu": {
+    "current": "AMD Ryzen 7 5700X",
+    "socket": "AM4",
+    "purchasePrice": 1100,
+    "purchaseDate": "2024-06-01",
+    "targets": [
+      {
+        "id": "ryzen-9-5900x",
+        "name": "AMD Ryzen 9 5900X",
+        "category": "cpu",
+        "triggerPrice": 950,
+        "estimatedPrice": 1350,
+        "performanceGain": 28,
+        "stores": ["KaBuM", "Pichau", "Terabyte Shop"],
+        "searchQuery": "AMD Ryzen 9 5900X processador",
+        "notes": "12C/24T — melhor custo-benefício AM4. Drop-in no B550M."
+      },
+      {
+        "id": "ryzen-9-5950x",
+        "name": "AMD Ryzen 9 5950X",
+        "category": "cpu",
+        "triggerPrice": 1600,
+        "estimatedPrice": 2100,
+        "performanceGain": 52,
+        "stores": ["KaBuM", "Pichau", "Terabyte Shop"],
+        "searchQuery": "AMD Ryzen 9 5950X processador",
+        "notes": "16C/32T — topo AM4. Upgrade máximo sem trocar plataforma."
+      }
+    ]
+  },
+  "gpu": {
+    "current": "NVIDIA GeForce RTX 5060",
+    "purchasePrice": 2800,
+    "purchaseDate": "2025-12-01",
+    "targets": [
+      {
+        "id": "rtx-5070",
+        "name": "NVIDIA GeForce RTX 5070",
+        "category": "gpu",
+        "triggerPrice": 3800,
+        "estimatedPrice": 5200,
+        "performanceGain": 42,
+        "stores": ["KaBuM", "Pichau", "Terabyte Shop"],
+        "searchQuery": "RTX 5070 placa de video",
+        "notes": "Salto significativo em ray tracing e DLSS 4."
+      },
+      {
+        "id": "rtx-5080",
+        "name": "NVIDIA GeForce RTX 5080",
+        "category": "gpu",
+        "triggerPrice": 6500,
+        "estimatedPrice": 8500,
+        "performanceGain": 85,
+        "stores": ["KaBuM", "Pichau", "Terabyte Shop"],
+        "searchQuery": "RTX 5080 placa de video",
+        "notes": "Top-tier para 4K. Upgrade apenas se preço cair 25%+."
+      }
+    ]
+  },
+  "ram": {
+    "current": "32GB DDR4 3200MHz (2x16GB)",
+    "purchasePrice": 380,
+    "purchaseDate": "2024-06-01",
+    "targets": [
+      {
+        "id": "ddr4-64gb-3600",
+        "name": "64GB DDR4 3600MHz (2x32GB)",
+        "category": "ram",
+        "triggerPrice": 420,
+        "estimatedPrice": 580,
+        "performanceGain": 5,
+        "stores": ["KaBuM", "Pichau", "Terabyte Shop"],
+        "searchQuery": "32GB DDR4 3600 MHz memória RAM",
+        "notes": "Apenas se uso regular ultrapassar 28GB. Hoje 32GB é suficiente."
+      }
+    ]
+  },
+  "storage": {
+    "current": "Corsair MP600 Elite 1TB NVMe Gen4",
+    "purchasePrice": 680,
+    "purchaseDate": "2024-06-01",
+    "targets": [
+      {
+        "id": "nvme-gen4-2tb",
+        "name": "NVMe Gen4 2TB",
+        "category": "storage",
+        "triggerPrice": 480,
+        "estimatedPrice": 650,
+        "performanceGain": 0,
+        "stores": ["KaBuM", "Pichau", "Terabyte Shop"],
+        "searchQuery": "SSD NVMe Gen4 2TB M.2",
+        "notes": "Expansão de capacidade. Gen4 compatível com B550M."
+      }
+    ]
+  }
+}
