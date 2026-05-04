@@ -28,15 +28,17 @@ export async function register() {
       Date.now() - new Date(latest.timestamp).getTime() > 60 * 60 * 1000
 
     if (isStale) {
-      try {
-        const { collectHardwareInfo } = await import('./lib/hardware')
-        const { saveSnapshot } = await import('./lib/db')
-        const snapshot = await collectHardwareInfo()
-        saveSnapshot(snapshot)
-        console.log('[startup] Hardware snapshot saved.')
-      } catch (err) {
-        console.error('[startup] Snapshot failed:', err)
-      }
+      void (async () => {
+        try {
+          const { collectHardwareInfo } = await import('./lib/hardware')
+          const { saveSnapshot } = await import('./lib/db')
+          const snapshot = await collectHardwareInfo()
+          saveSnapshot(snapshot)
+          console.log('[startup] Hardware snapshot saved.')
+        } catch (err) {
+          console.error('[startup] Snapshot failed:', err)
+        }
+      })()
     }
 
     startScheduler()

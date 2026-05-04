@@ -53,7 +53,7 @@ export default function Dashboard() {
   const { data: pricesData, isLoading: pricesLoading, mutate: refreshPrices } =
     useSWR<PricesData>('/api/prices', fetcher, { refreshInterval: 300_000 })
 
-  const { data: timelineData } =
+  const { data: timelineData, mutate: refreshTimeline } =
     useSWR<TimelineData>('/api/timeline', fetcher)
 
   const { data: componentImages, mutate: refreshComponentImages } =
@@ -241,7 +241,7 @@ export default function Dashboard() {
 
       {/* ══ BUILD TIMELINE ══════════════════════════════════════════════════ */}
       <section className="mb-4">
-        <BuildTimeline events={timelineData?.events ?? []} />
+        <BuildTimeline events={timelineData?.events ?? []} onEventAdded={() => void refreshTimeline()} />
       </section>
 
       {/* ══ FOOTER ══════════════════════════════════════════════════════════ */}
