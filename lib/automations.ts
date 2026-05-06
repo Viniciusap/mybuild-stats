@@ -1,3 +1,7 @@
+import path from 'node:path'
+
+const REMOVE_AI_WRAPPER = path.join(process.cwd(), 'scripts', 'run-remove-ai.ps1')
+
 export interface AutomationTask {
   id: string
   label: string
@@ -86,5 +90,14 @@ export const AUTOMATION_TASKS: AutomationTask[] = [
     args: ['/scannow'],
     requiresAdmin: true,
     estimatedSeconds: 180,
+  },
+  {
+    id: 'remove-windows-ai',
+    label: 'Remove Windows AI',
+    description: 'Pre-checks AppX packages, registry policies and reapply task. If clean → COMPLIANT (no action). Otherwise removes Copilot, Recall, AI Fabric, Voice Access and AI AppX, restores legacy apps and persists cleanup across Windows updates. Source: zoicware/RemoveWindowsAI.',
+    command: 'powershell',
+    args: ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', REMOVE_AI_WRAPPER],
+    requiresAdmin: true,
+    estimatedSeconds: 900,
   },
 ]

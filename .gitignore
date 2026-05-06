@@ -22,6 +22,9 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
+# automation history (runtime-managed, per-machine)
+scripts/automation-runs.json
+
 # generated data (runtime-managed, per-machine)
 data/snapshots.json
 data/build-config.json
@@ -37,3 +40,4 @@ tsconfig.tsbuildinfo
 
 # PM2
 .pm2/
+.aider*

@@ -110,10 +110,27 @@ One-click Windows maintenance tasks with live log streaming. Output appears line
 | **Upgrade All Packages** | `winget upgrade --all` | **Yes** |
 | **DISM — Restore Health** | `dism /Online /Cleanup-Image /RestoreHealth` | **Yes** |
 | **SFC — Scan System Files** | `sfc /scannow` | **Yes** |
+| **Remove Windows AI** | Wrapper script — pre-checks system state, then runs `RemoveWindowsAi.ps1 -nonInteractive -AllOptions` if needed | **Yes** |
 
 > **Admin tasks:** Start the dev server (or PM2) from an Administrator terminal. The process running `npm run dev` needs elevation — there is no UAC prompt from within the app. Tasks that fail due to insufficient privileges will show the error output in the log panel.
 
-Each task card shows an estimated duration, an ADMIN badge where applicable, and DONE / ERROR status with exit code after completion.
+Each task card shows:
+- Estimated duration and ADMIN badge where applicable
+- **Status badge** after completion: DONE · ERROR · COMPLIANT · EXECUTED
+- **Last run** — time elapsed since the previous run (e.g. `COMPLIANT · 2h ago`), loaded from persistent history on every page visit
+- Log panel auto-closes 3 seconds after the task finishes
+
+**Run history** is persisted to `scripts/automation-runs.json` (per machine, not versioned). A ring buffer keeps the last 50 runs per task. Query via `GET /api/automations/history?taskId=<id>`.
+
+#### Remove Windows AI — idempotent pre-check
+
+Before running the upstream script, a wrapper (`scripts/run-remove-ai.ps1`) queries the system:
+
+1. AppX packages (`*Copilot*`, `*Recall*`, `*BingSearch*`, `*WindowsAI*`)
+2. Registry policies (`HKLM\…\WindowsAI`, `HKCU\…\WindowsCopilot`)
+3. Scheduled task `RemoveAI-UpdateCleanupChecker`
+
+If all checks pass → status **COMPLIANT** (no action taken, completes in ~5s). If any artifact is detected (e.g. after a Windows update re-introduced Copilot) → runs the full removal script → status **EXECUTED**. Source: [zoicware/RemoveWindowsAI](https://github.com/zoicware/RemoveWindowsAI).
 
 ---
 
@@ -154,7 +171,8 @@ mybuild-stats/
 │       ├── case-search/        # GET config / POST save / DELETE clear
 │       ├── image-search/       # GET — DuckDuckGo image search proxy
 │       ├── pc-photo/           # POST upload / DELETE clear
-│       └── automations/        # GET task list / POST run & stream
+│       ├── automations/        # GET task list / POST run & stream
+│       └── automations/history/ # GET run history (?taskId=)
 ├── components/
 │   ├── ComponentDash.tsx       # CPU / GPU / RAM / Storage cards + gauges
 │   ├── Gauge.tsx               # SVG 270° speedometer
@@ -173,6 +191,7 @@ mybuild-stats/
 ├── lib/
 │   ├── hardware.ts             # systeminformation wrapper → HardwareSnapshot
 │   ├── automations.ts          # Task registry (id, command, args, requiresAdmin)
+│   ├── automation-history.ts   # appendRun / readHistory — ring-buffer JSON persistence
 │   ├── buildSpecs.ts           # formatBuildSpecs() — clipboard markdown
 │   ├── prices.ts               # Serper.dev integration + price alert logic
 │   ├── scheduler.ts            # node-cron 12h price check schedule
@@ -185,6 +204,10 @@ mybuild-stats/
 │   ├── build-config.json       # Case name + hasImage flag (auto-managed)
 │   ├── snapshots.json          # Hardware snapshots (auto-managed)
 │   └── events.json             # Timeline events (auto-managed)
+├── scripts/
+│   ├── RemoveWindowsAi.ps1     # Bundled upstream script (zoicware/RemoveWindowsAI)
+│   ├── run-remove-ai.ps1       # Idempotent wrapper — pre-check → COMPLIANT or EXECUTED
+│   └── automation-runs.json    # Run history, per machine (gitignored)
 ├── types/index.ts              # Shared TypeScript interfaces
 ├── instrumentation.ts          # Next.js startup hook — seed data + start scheduler
 └── ecosystem.config.js         # PM2 production config

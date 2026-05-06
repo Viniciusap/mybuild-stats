@@ -1,14 +1,28 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Play, ShieldAlert, CheckCircle, XCircle, Clock, Terminal } from 'lucide-react'
+import { Play, ShieldAlert, CheckCircle, XCircle, Clock, Terminal, History } from 'lucide-react'
 import { clsx } from 'clsx'
 import type { AutomationTask } from '@/lib/automations'
+import type { RunEntry } from '@/lib/automation-history'
 
 interface TaskState {
   lines: string[]
-  status: 'idle' | 'running' | 'done' | 'error'
+  status: 'idle' | 'running' | 'done' | 'error' | 'compliant' | 'executed'
   exitCode?: number
+  lastRunAt?: string
+  lastRunStatus?: RunEntry['status']
+}
+
+function formatRelative(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  const d = Math.floor(h / 24)
+  return `${d}d ago`
 }
 
 function AdminBadge() {
@@ -30,6 +44,13 @@ function EstimatedBadge({ seconds }: { seconds: number }) {
   )
 }
 
+const STATUS_COLOR: Record<RunEntry['status'], string> = {
+  done: 'text-cyber-green',
+  compliant: 'text-cyber-green',
+  executed: 'text-cyber-cyan',
+  error: 'text-cyber-red',
+}
+
 export default function AutomationsPage() {
   const [tasks, setTasks] = useState<AutomationTask[]>([])
   const [states, setStates] = useState<Record<string, TaskState>>({})
@@ -37,12 +58,31 @@ export default function AutomationsPage() {
   const logRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    fetch('/api/automations')
-      .then((r) => r.json())
-      .then((d: { tasks: AutomationTask[] }) => {
-        setTasks(d.tasks)
+    Promise.all([
+      fetch('/api/automations').then((r) => r.json()),
+      fetch('/api/automations/history').then((r) => r.json()),
+    ])
+      .then(([taskData, histData]: [{ tasks: AutomationTask[] }, { runs: RunEntry[] }]) => {
+        const taskList = taskData.tasks
+        const runs: RunEntry[] = histData.runs ?? []
+
+        const lastByTask = new Map<string, RunEntry>()
+        for (const r of runs) {
+          const existing = lastByTask.get(r.taskId)
+          if (!existing || r.endedAt > existing.endedAt) lastByTask.set(r.taskId, r)
+        }
+
+        setTasks(taskList)
         const init: Record<string, TaskState> = {}
-        for (const t of d.tasks) init[t.id] = { lines: [], status: 'idle' }
+        for (const t of taskList) {
+          const last = lastByTask.get(t.id)
+          init[t.id] = {
+            lines: [],
+            status: 'idle',
+            lastRunAt: last?.endedAt,
+            lastRunStatus: last?.status,
+          }
+        }
         setStates(init)
       })
       .catch(() => {})
@@ -56,7 +96,7 @@ export default function AutomationsPage() {
 
   async function runTask(id: string) {
     setSelected(id)
-    setStates((prev) => ({ ...prev, [id]: { lines: [], status: 'running' } }))
+    setStates((prev) => ({ ...prev, [id]: { ...prev[id], lines: [], status: 'running' } }))
 
     try {
       const res = await fetch('/api/automations', {
@@ -68,7 +108,7 @@ export default function AutomationsPage() {
       if (!res.ok || !res.body) {
         setStates((prev) => ({
           ...prev,
-          [id]: { lines: [`Erro HTTP ${res.status}`], status: 'error', exitCode: -1 },
+          [id]: { ...prev[id], lines: [`Erro HTTP ${res.status}`], status: 'error', exitCode: -1 },
         }))
         return
       }
@@ -87,12 +127,33 @@ export default function AutomationsPage() {
 
         for (const part of parts) {
           if (!part) continue
+
+          if (part.startsWith('__STATUS__')) {
+            const s = part.slice(10).toLowerCase()
+            if (s === 'compliant') {
+              setStates((prev) => ({ ...prev, [id]: { ...prev[id], status: 'compliant' } }))
+            } else if (s === 'executed') {
+              setStates((prev) => ({ ...prev, [id]: { ...prev[id], status: 'executed' } }))
+            }
+            continue
+          }
+
           if (part.startsWith('__EXIT__')) {
             const code = parseInt(part.slice(8), 10)
-            setStates((prev) => ({
-              ...prev,
-              [id]: { ...prev[id], status: code === 0 ? 'done' : 'error', exitCode: code },
-            }))
+            const endedAt = new Date().toISOString()
+            setStates((prev) => {
+              const cur = prev[id]
+              const next: TaskState['status'] =
+                cur.status === 'compliant' || cur.status === 'executed'
+                  ? cur.status
+                  : (code === 0 ? 'done' : 'error')
+              const lastRunStatus: RunEntry['status'] | undefined =
+                next === 'done' || next === 'error' || next === 'compliant' || next === 'executed'
+                  ? next
+                  : cur.lastRunStatus
+              return { ...prev, [id]: { ...cur, status: next, exitCode: code, lastRunAt: endedAt, lastRunStatus } }
+            })
+            setTimeout(() => setSelected((prev) => (prev === id ? null : prev)), 3000)
           } else {
             setStates((prev) => ({
               ...prev,
@@ -104,7 +165,7 @@ export default function AutomationsPage() {
     } catch (err) {
       setStates((prev) => ({
         ...prev,
-        [id]: { lines: [`Erro: ${String(err)}`], status: 'error', exitCode: -1 },
+        [id]: { ...prev[id], lines: [`Erro: ${String(err)}`], status: 'error', exitCode: -1 },
       }))
     }
   }
@@ -132,6 +193,7 @@ export default function AutomationsPage() {
           const isDone = state?.status === 'done'
           const isError = state?.status === 'error'
           const isSelected = selected === task.id
+          const isIdle = !state || state.status === 'idle'
 
           return (
             <div
@@ -157,6 +219,14 @@ export default function AutomationsPage() {
                   {isDone && <><CheckCircle size={11} className="text-cyber-green" /><span className="text-cyber-green">DONE</span></>}
                   {isError && <><XCircle size={11} className="text-cyber-red" /><span className="text-cyber-red">ERROR ({state.exitCode})</span></>}
                   {isRunning && <><div className="w-2 h-2 rounded-full bg-cyber-cyan animate-pulse" /><span className="text-cyber-cyan">RUNNING…</span></>}
+                  {state?.status === 'compliant' && <><CheckCircle size={11} className="text-cyber-green" /><span className="text-cyber-green">COMPLIANT</span></>}
+                  {state?.status === 'executed' && <><CheckCircle size={11} className="text-cyber-cyan" /><span className="text-cyber-cyan">EXECUTED</span></>}
+                  {isIdle && state?.lastRunAt && state.lastRunStatus && (
+                    <span className={clsx('flex items-center gap-1', STATUS_COLOR[state.lastRunStatus])}>
+                      <History size={10} />
+                      {state.lastRunStatus.toUpperCase()} · {formatRelative(state.lastRunAt)}
+                    </span>
+                  )}
                 </div>
                 <button
                   disabled={isRunning}
@@ -192,6 +262,18 @@ export default function AutomationsPage() {
             {selectedState?.status === 'error' && (
               <span className="text-[10px] font-mono text-cyber-red ml-auto">● ERROR · EXIT {selectedState.exitCode}</span>
             )}
+            {selectedState?.status === 'compliant' && (
+              <span className="text-[10px] font-mono text-cyber-green ml-auto">● COMPLIANT · NO ACTION</span>
+            )}
+            {selectedState?.status === 'executed' && (
+              <span className="text-[10px] font-mono text-cyber-cyan ml-auto">● EXECUTED · EXIT 0</span>
+            )}
+            {selectedState?.status === 'idle' && selectedState.lastRunAt && selectedState.lastRunStatus && (
+              <span className={clsx('text-[10px] font-mono ml-auto flex items-center gap-1', STATUS_COLOR[selectedState.lastRunStatus])}>
+                <History size={10} />
+                LAST: {selectedState.lastRunStatus.toUpperCase()} · {formatRelative(selectedState.lastRunAt)}
+              </span>
+            )}
           </div>
           <div
             ref={logRef}
@@ -199,7 +281,11 @@ export default function AutomationsPage() {
             style={{ scrollBehavior: 'smooth' }}
           >
             {(!selectedState?.lines.length && selectedState?.status === 'idle') && (
-              <span className="text-cyber-text-dim">Click RUN to start.</span>
+              <span className="text-cyber-text-dim">
+                {selectedState.lastRunAt
+                  ? `Last run ${formatRelative(selectedState.lastRunAt)} — click RUN to check again.`
+                  : 'Click RUN to start.'}
+              </span>
             )}
             {selectedState?.lines.map((line, i) => (
               <div
@@ -208,7 +294,7 @@ export default function AutomationsPage() {
                   line.startsWith('[ERRO]') ? 'text-cyber-red' : 'text-cyber-text',
                 )}
               >
-                {line || ' '}
+                {line || ' '}
               </div>
             ))}
             {selectedState?.status === 'running' && (
