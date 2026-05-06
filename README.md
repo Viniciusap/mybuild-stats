@@ -1,6 +1,6 @@
 # MyBuild Stats
 
-A local, self-hosted hardware dashboard for Windows. Monitors your PC in real time, tracks component depreciation, watches upgrade prices, and runs system maintenance tasks — all from a cyberpunk-themed web UI.
+A local, self-hosted hardware dashboard for Windows. Monitors your PC in real time, tracks component depreciation, watches upgrade prices, runs system maintenance tasks, and manages developer tools — all from a clean dark-mode web UI.
 
 **[Live Demo](https://viniciusap.github.io/mybuild-stats/)** — static preview with mock data.
 
@@ -8,7 +8,7 @@ A local, self-hosted hardware dashboard for Windows. Monitors your PC in real ti
 
 ## Purpose
 
-MyBuild Stats is a personal command center for PC enthusiasts who want more than Task Manager. It reads live hardware data, helps you decide *when* to upgrade (not just *what* to upgrade to), tracks component resale value over time, and keeps your system healthy through one-click automations — no cloud, no account, no telemetry.
+MyBuild Stats is a personal command center for PC enthusiasts who want more than Task Manager. It reads live hardware data, helps you decide *when* to upgrade (not just *what* to upgrade to), tracks component resale value over time, keeps your system healthy through one-click automations, and gives you a full overview of your developer environment — no cloud, no account, no telemetry.
 
 ---
 
@@ -41,7 +41,7 @@ Sidebar card showing OS, Windows build, uptime, motherboard, BIOS version, BIOS 
 
 ### Case / PC Photo
 
-Upload or search for a photo of your case or full build. Displayed with a cyberpunk scanline overlay and corner-bracket decoration. Replaces or removes at any time.
+Upload or search for a photo of your case or full build.
 
 - **SEARCH MODEL tab** — queries DuckDuckGo Images by case model name; pick from a 3×3 grid.
 - **UPLOAD PHOTO tab** — drag-and-drop or file picker; accepts JPG, PNG, WEBP up to 10 MB.
@@ -112,7 +112,7 @@ One-click Windows maintenance tasks with live log streaming. Output appears line
 | **SFC — Scan System Files** | `sfc /scannow` | **Yes** |
 | **Remove Windows AI** | Wrapper script — pre-checks system state, then runs `RemoveWindowsAi.ps1 -nonInteractive -AllOptions` if needed | **Yes** |
 
-> **Admin tasks:** Start the dev server (or PM2) from an Administrator terminal. The process running `npm run dev` needs elevation — there is no UAC prompt from within the app. Tasks that fail due to insufficient privileges will show the error output in the log panel.
+> **Admin tasks:** Start the dev server (or PM2) from an Administrator terminal. The process running `npm run dev` needs elevation — there is no UAC prompt from within the app.
 
 Each task card shows:
 - Estimated duration and ADMIN badge where applicable
@@ -120,7 +120,7 @@ Each task card shows:
 - **Last run** — time elapsed since the previous run (e.g. `COMPLIANT · 2h ago`), loaded from persistent history on every page visit
 - Log panel auto-closes 3 seconds after the task finishes
 
-**Run history** is persisted to `scripts/automation-runs.json` (per machine, not versioned). A ring buffer keeps the last 50 runs per task. Query via `GET /api/automations/history?taskId=<id>`.
+**Run history** is persisted to `scripts/automation-runs.json` (per machine, not versioned). A ring buffer keeps the last 50 runs per task.
 
 #### Remove Windows AI — idempotent pre-check
 
@@ -130,7 +130,35 @@ Before running the upstream script, a wrapper (`scripts/run-remove-ai.ps1`) quer
 2. Registry policies (`HKLM\…\WindowsAI`, `HKCU\…\WindowsCopilot`)
 3. Scheduled task `RemoveAI-UpdateCleanupChecker`
 
-If all checks pass → status **COMPLIANT** (no action taken, completes in ~5s). If any artifact is detected (e.g. after a Windows update re-introduced Copilot) → runs the full removal script → status **EXECUTED**. Source: [zoicware/RemoveWindowsAI](https://github.com/zoicware/RemoveWindowsAI).
+If all checks pass → status **COMPLIANT** (no action taken, ~5s). If any artifact is detected → runs the full removal script → status **EXECUTED**. Source: [zoicware/RemoveWindowsAI](https://github.com/zoicware/RemoveWindowsAI).
+
+---
+
+### Tools Tab
+
+Detect, install, and update developer tools on the machine. Powered by Windows `where` command and `winget`.
+
+**26 tools** across 3 categories:
+
+| Category | Tools |
+|----------|-------|
+| Package Managers | winget, Chocolatey, Scoop, npm, pnpm, yarn, Bun, pip, cargo |
+| Runtimes | Node.js, Deno, Python, Go, .NET, Java, Rust |
+| Dev Tools | Git, GitHub CLI, Docker, kubectl, curl, npx, Azure CLI, AWS CLI, Terraform, make |
+
+Each tool card shows:
+- Installed / not installed status with version number
+- **External link** — opens the tool's official docs or homepage in a new tab
+- **UPDATE badge** — when `winget` detects a newer version is available
+- **INSTALL button** (uninstalled tools with a winget ID) — streams `winget install` output live
+- **UPDATE button** (installed tools with an update available) — streams `winget upgrade` output live
+- Manual install note for tools not available via winget (e.g. Scoop: `irm get.scoop.sh | iex`)
+
+**Header actions:**
+- **SCAN** — re-detects all tools in parallel via `where <tool>` + `<tool> --version`
+- **CHECK UPDATES** — runs `winget upgrade --include-unknown` and flags outdated tools
+
+> Installing tools may require the server to be running as Administrator, depending on the tool.
 
 ---
 
@@ -140,7 +168,7 @@ If all checks pass → status **COMPLIANT** (no action taken, completes in ~5s).
 |-------|-----------|
 | Framework | Next.js 14.2 (App Router) |
 | Language | TypeScript 5 |
-| Styling | Tailwind CSS 3 (custom cyberpunk theme) |
+| Styling | Tailwind CSS 3 (custom dark slate theme) |
 | Hardware reads | `systeminformation` 5 |
 | Data fetching (client) | SWR 2 |
 | Scheduling | `node-cron` 3 |
@@ -161,6 +189,8 @@ mybuild-stats/
 │   ├── page.tsx                # Main dashboard page
 │   ├── automations/
 │   │   └── page.tsx            # Automations tab
+│   ├── tools/
+│   │   └── page.tsx            # Tools tab — detect / install / update dev tools
 │   └── api/
 │       ├── hardware/           # GET — live hardware snapshot
 │       ├── snapshot/           # POST — save snapshot to JSON
@@ -172,11 +202,14 @@ mybuild-stats/
 │       ├── image-search/       # GET — DuckDuckGo image search proxy
 │       ├── pc-photo/           # POST upload / DELETE clear
 │       ├── automations/        # GET task list / POST run & stream
-│       └── automations/history/ # GET run history (?taskId=)
+│       ├── automations/history/ # GET run history (?taskId=)
+│       ├── tools/              # GET — detect installed tools + versions
+│       ├── tools/updates/      # GET — winget upgrade parse → upgradeable IDs
+│       └── tools/install/      # POST — stream winget install/upgrade
 ├── components/
 │   ├── ComponentDash.tsx       # CPU / GPU / RAM / Storage cards + gauges
 │   ├── Gauge.tsx               # SVG 270° speedometer
-│   ├── TabNav.tsx              # Dashboard / Automations navigation
+│   ├── TabNav.tsx              # Dashboard / Automations / Tools navigation
 │   ├── LiveClock.tsx           # Real-time ticking clock
 │   ├── ComparisonTable.tsx     # Upgrade & depreciation analysis
 │   ├── UpgradeRadar.tsx        # Price tracking panel
@@ -185,10 +218,11 @@ mybuild-stats/
 │   ├── PcPhotoCard.tsx         # PC photo upload
 │   ├── ImageSearchModal.tsx    # Component image picker modal
 │   ├── PriceAlertBanner.tsx    # Price alert notifications
-│   ├── GlowCard.tsx            # Base card with neon glow accent
+│   ├── GlowCard.tsx            # Base card with accent border
 │   ├── NeonProgress.tsx        # Horizontal progress bar
 │   └── StatBadge.tsx           # Online / warning / error badge
 ├── lib/
+│   ├── styles.ts               # Shared Tailwind class constants (btn, badge, card, text, …)
 │   ├── hardware.ts             # systeminformation wrapper → HardwareSnapshot
 │   ├── automations.ts          # Task registry (id, command, args, requiresAdmin)
 │   ├── automation-history.ts   # appendRun / readHistory — ring-buffer JSON persistence
@@ -221,7 +255,7 @@ mybuild-stats/
 
 - Node.js 18+
 - Windows 10/11 (systeminformation reads WMI data)
-- winget, dism, sfc available in PATH (built into Windows 10 1809+)
+- winget available in PATH (built into Windows 10 1809+)
 
 ### Install & Run
 
@@ -248,7 +282,7 @@ pm2 start ecosystem.config.js
 pm2 save
 ```
 
-### Running Automations that Need Admin
+### Running Tasks that Need Admin
 
 Open a new terminal as Administrator before starting the server:
 
@@ -356,5 +390,4 @@ Planned features — roughly priority-ordered.
 | **Performance Snapshot Diff** | Compare two snapshots side-by-side — see how temps or load changed between sessions. |
 | **Export to PDF** | Generate a printable build report: specs, depreciation table, upgrade recommendations. |
 | **Notification Center** | In-app notification feed for price alerts, temp warnings, and automation completions. Browser push notification support. |
-| **Theme Switcher** | Toggle between cyberpunk (default), dark-minimal, and light mode. |
 | **Multi-PC Support** | Manage multiple machines from one dashboard. Switch between build profiles; each has its own `data/` directory. |

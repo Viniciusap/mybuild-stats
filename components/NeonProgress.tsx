@@ -20,13 +20,6 @@ const trackMap: Record<Accent, string> = {
   red: 'bg-cyber-red',
 }
 
-const glowMap: Record<Accent, string> = {
-  cyan: 'shadow-[0_0_8px_#00d4ff88]',
-  green: 'shadow-[0_0_8px_#00ff8788]',
-  purple: 'shadow-[0_0_8px_#bf00ff88]',
-  amber: 'shadow-[0_0_8px_#ffaa0088]',
-  red: 'shadow-[0_0_8px_#ff335588]',
-}
 
 function pickAccent(value: number): Accent {
   if (value < 50) return 'green'
@@ -81,8 +74,7 @@ export default function NeonProgress({
         <div
           className={clsx(
             'h-full rounded-full transition-all duration-700',
-            trackMap[resolvedAccent],
-            glowMap[resolvedAccent]
+            trackMap[resolvedAccent]
           )}
           style={{ width: `${pct}%` }}
         />

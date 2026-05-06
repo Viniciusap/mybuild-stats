@@ -89,19 +89,6 @@ export default function PcPhotoCard({ hasPhoto: initialHasPhoto, onUpload }: Pro
       {/* Photo or upload zone */}
       {hasPhoto ? (
         <div className="relative flex-1 min-h-[180px] rounded overflow-hidden border border-cyber-border group">
-          {/* Scanline overlay */}
-          <div
-            className="absolute inset-0 z-10 pointer-events-none"
-            style={{
-              backgroundImage:
-                'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px)',
-            }}
-          />
-          {/* Corner decorations */}
-          <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-cyber-cyan z-20 opacity-70" />
-          <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-cyber-cyan z-20 opacity-70" />
-          <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-cyber-cyan z-20 opacity-70" />
-          <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-cyber-cyan z-20 opacity-70" />
           {/* Photo */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img

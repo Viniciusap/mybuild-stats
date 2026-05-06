@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Monitor, Wrench } from 'lucide-react'
+import { Monitor, Wrench, Package } from 'lucide-react'
 import { clsx } from 'clsx'
 
 const tabs = [
   { href: '/', label: 'DASHBOARD', icon: Monitor },
   { href: '/automations', label: 'AUTOMATIONS', icon: Wrench },
+  { href: '/tools', label: 'TOOLS', icon: Package },
 ]
 
 export default function TabNav() {

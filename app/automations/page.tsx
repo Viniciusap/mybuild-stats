@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Play, ShieldAlert, CheckCircle, XCircle, Clock, Terminal, History } from 'lucide-react'
 import { clsx } from 'clsx'
+import { btn, badge, card, text, status, logPanel } from '@/lib/styles'
 import type { AutomationTask } from '@/lib/automations'
 import type { RunEntry } from '@/lib/automation-history'
 
@@ -21,39 +22,19 @@ function formatRelative(iso: string): string {
   if (m < 60) return `${m}m ago`
   const h = Math.floor(m / 60)
   if (h < 24) return `${h}h ago`
-  const d = Math.floor(h / 24)
-  return `${d}d ago`
-}
-
-function AdminBadge() {
-  return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-cyber-amber border border-cyber-amber/30 bg-cyber-amber/10 px-1.5 py-0.5 rounded leading-none">
-      <ShieldAlert size={9} />
-      ADMIN
-    </span>
-  )
-}
-
-function EstimatedBadge({ seconds }: { seconds: number }) {
-  const label = seconds < 60 ? `~${seconds}s` : `~${Math.round(seconds / 60)}min`
-  return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-mono text-cyber-text-dim border border-cyber-border/40 px-1.5 py-0.5 rounded leading-none">
-      <Clock size={9} />
-      {label}
-    </span>
-  )
+  return `${Math.floor(h / 24)}d ago`
 }
 
 const STATUS_COLOR: Record<RunEntry['status'], string> = {
-  done: 'text-cyber-green',
-  compliant: 'text-cyber-green',
-  executed: 'text-cyber-cyan',
-  error: 'text-cyber-red',
+  done:      status.done,
+  compliant: status.done,
+  executed:  status.running,
+  error:     status.error,
 }
 
 export default function AutomationsPage() {
-  const [tasks, setTasks] = useState<AutomationTask[]>([])
-  const [states, setStates] = useState<Record<string, TaskState>>({})
+  const [tasks, setTasks]     = useState<AutomationTask[]>([])
+  const [states, setStates]   = useState<Record<string, TaskState>>({})
   const [selected, setSelected] = useState<string | null>(null)
   const logRef = useRef<HTMLDivElement>(null)
 
@@ -76,12 +57,7 @@ export default function AutomationsPage() {
         const init: Record<string, TaskState> = {}
         for (const t of taskList) {
           const last = lastByTask.get(t.id)
-          init[t.id] = {
-            lines: [],
-            status: 'idle',
-            lastRunAt: last?.endedAt,
-            lastRunStatus: last?.status,
-          }
+          init[t.id] = { lines: [], status: 'idle', lastRunAt: last?.endedAt, lastRunStatus: last?.status }
         }
         setStates(init)
       })
@@ -89,9 +65,7 @@ export default function AutomationsPage() {
   }, [])
 
   useEffect(() => {
-    if (logRef.current) {
-      logRef.current.scrollTop = logRef.current.scrollHeight
-    }
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
   }, [selected, states])
 
   async function runTask(id: string) {
@@ -114,8 +88,8 @@ export default function AutomationsPage() {
       }
 
       const reader = res.body.getReader()
-      const dec = new TextDecoder()
-      let buffer = ''
+      const dec    = new TextDecoder()
+      let buffer   = ''
 
       while (true) {
         const { done, value } = await reader.read()
@@ -130,10 +104,8 @@ export default function AutomationsPage() {
 
           if (part.startsWith('__STATUS__')) {
             const s = part.slice(10).toLowerCase()
-            if (s === 'compliant') {
-              setStates((prev) => ({ ...prev, [id]: { ...prev[id], status: 'compliant' } }))
-            } else if (s === 'executed') {
-              setStates((prev) => ({ ...prev, [id]: { ...prev[id], status: 'executed' } }))
+            if (s === 'compliant' || s === 'executed') {
+              setStates((prev) => ({ ...prev, [id]: { ...prev[id], status: s as 'compliant' | 'executed' } }))
             }
             continue
           }
@@ -146,11 +118,10 @@ export default function AutomationsPage() {
               const next: TaskState['status'] =
                 cur.status === 'compliant' || cur.status === 'executed'
                   ? cur.status
-                  : (code === 0 ? 'done' : 'error')
+                  : code === 0 ? 'done' : 'error'
               const lastRunStatus: RunEntry['status'] | undefined =
-                next === 'done' || next === 'error' || next === 'compliant' || next === 'executed'
-                  ? next
-                  : cur.lastRunStatus
+                (next === 'done' || next === 'error' || next === 'compliant' || next === 'executed')
+                  ? next : cur.lastRunStatus
               return { ...prev, [id]: { ...cur, status: next, exitCode: code, lastRunAt: endedAt, lastRunStatus } }
             })
             setTimeout(() => setSelected((prev) => (prev === id ? null : prev)), 3000)
@@ -171,57 +142,64 @@ export default function AutomationsPage() {
   }
 
   const selectedState = selected ? states[selected] : null
-  const selectedTask = selected ? tasks.find((t) => t.id === selected) : null
+  const selectedTask  = selected ? tasks.find((t) => t.id === selected) : null
 
   return (
     <div className="min-h-screen p-3 md:p-5 max-w-[1800px] mx-auto animate-fade-in">
 
-      {/* ══ ADMIN WARNING ══ */}
-      <div className="mb-4 flex items-start gap-2 px-3 py-2 rounded border border-cyber-amber/30 bg-cyber-amber/5 text-xs font-mono text-cyber-amber">
+      {/* ── Admin warning ── */}
+      <div className={clsx(badge.base, badge.sm, badge.warning, 'mb-4 w-full px-3 py-2 rounded-lg items-start gap-2')}>
         <ShieldAlert size={13} className="shrink-0 mt-0.5" />
-        <span>
-          Tasks marked <strong>ADMIN</strong> require the server to be started in an Administrator terminal.
-          Close the current terminal, open a new one as Administrator, and run <code className="bg-cyber-bg/60 px-1 rounded">npm run dev</code>.
+        <span className={text.dim}>
+          Tasks marked <strong className="text-cyber-amber">ADMIN</strong> require the server to be started in an Administrator terminal.
+          Close the current terminal, open a new one as Administrator, and run{' '}
+          <code className="bg-cyber-bg/60 px-1 rounded">npm run dev</code>.
         </span>
       </div>
 
-      {/* ══ TASK GRID ══ */}
+      {/* ── Task grid ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
         {tasks.map((task) => {
-          const state = states[task.id]
+          const state     = states[task.id]
           const isRunning = state?.status === 'running'
-          const isDone = state?.status === 'done'
-          const isError = state?.status === 'error'
           const isSelected = selected === task.id
-          const isIdle = !state || state.status === 'idle'
 
           return (
             <div
               key={task.id}
-              className={clsx(
-                'rounded-lg border bg-cyber-panel/80 p-3 flex flex-col gap-2 cursor-pointer transition-colors',
-                isSelected ? 'border-cyber-cyan/60' : 'border-cyber-border hover:border-cyber-border/80',
-              )}
               onClick={() => setSelected(task.id)}
+              className={clsx(
+                card.base, 'p-3 flex flex-col gap-2 cursor-pointer transition-colors',
+                isSelected ? card.active : clsx(card.default, 'hover:border-cyber-border/80'),
+              )}
             >
+              {/* Task header */}
               <div className="flex items-start justify-between gap-2">
-                <p className="text-sm font-mono font-bold text-cyber-text leading-snug">{task.label}</p>
+                <p className={text.value}>{task.label}</p>
                 <div className="flex items-center gap-1 shrink-0">
-                  {task.requiresAdmin && <AdminBadge />}
-                  <EstimatedBadge seconds={task.estimatedSeconds} />
+                  {task.requiresAdmin && (
+                    <span className={clsx(badge.base, badge.xs, badge.warning)}>
+                      <ShieldAlert size={9} />ADMIN
+                    </span>
+                  )}
+                  <span className={clsx(badge.base, badge.xs, badge.neutral)}>
+                    <Clock size={9} />
+                    {task.estimatedSeconds < 60 ? `~${task.estimatedSeconds}s` : `~${Math.round(task.estimatedSeconds / 60)}min`}
+                  </span>
                 </div>
               </div>
 
-              <p className="text-[11px] font-mono text-cyber-text-dim flex-1">{task.description}</p>
+              <p className={clsx(text.dim, 'flex-1')}>{task.description}</p>
 
+              {/* Status + Run button */}
               <div className="flex items-center justify-between gap-2 mt-1">
                 <div className="flex items-center gap-1.5 text-[10px] font-mono">
-                  {isDone && <><CheckCircle size={11} className="text-cyber-green" /><span className="text-cyber-green">DONE</span></>}
-                  {isError && <><XCircle size={11} className="text-cyber-red" /><span className="text-cyber-red">ERROR ({state.exitCode})</span></>}
-                  {isRunning && <><div className="w-2 h-2 rounded-full bg-cyber-cyan animate-pulse" /><span className="text-cyber-cyan">RUNNING…</span></>}
-                  {state?.status === 'compliant' && <><CheckCircle size={11} className="text-cyber-green" /><span className="text-cyber-green">COMPLIANT</span></>}
-                  {state?.status === 'executed' && <><CheckCircle size={11} className="text-cyber-cyan" /><span className="text-cyber-cyan">EXECUTED</span></>}
-                  {isIdle && state?.lastRunAt && state.lastRunStatus && (
+                  {state?.status === 'done'      && <><CheckCircle size={11} className="text-cyber-green" /><span className={status.done}>DONE</span></>}
+                  {state?.status === 'error'     && <><XCircle size={11} className="text-cyber-red" /><span className={status.error}>ERROR ({state.exitCode})</span></>}
+                  {state?.status === 'running'   && <><div className="w-2 h-2 rounded-full bg-cyber-cyan animate-pulse" /><span className={status.running}>RUNNING…</span></>}
+                  {state?.status === 'compliant' && <><CheckCircle size={11} className="text-cyber-green" /><span className={status.done}>COMPLIANT</span></>}
+                  {state?.status === 'executed'  && <><CheckCircle size={11} className="text-cyber-cyan" /><span className={status.running}>EXECUTED</span></>}
+                  {(!state || state.status === 'idle') && state?.lastRunAt && state.lastRunStatus && (
                     <span className={clsx('flex items-center gap-1', STATUS_COLOR[state.lastRunStatus])}>
                       <History size={10} />
                       {state.lastRunStatus.toUpperCase()} · {formatRelative(state.lastRunAt)}
@@ -231,15 +209,9 @@ export default function AutomationsPage() {
                 <button
                   disabled={isRunning}
                   onClick={(e) => { e.stopPropagation(); void runTask(task.id) }}
-                  className={clsx(
-                    'flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono font-bold rounded border transition-colors',
-                    isRunning
-                      ? 'text-cyber-text-dim border-cyber-border/30 cursor-not-allowed'
-                      : 'text-cyber-cyan border-cyber-cyan/40 hover:bg-cyber-cyan/10 hover:border-cyber-cyan/70',
-                  )}
+                  className={clsx(btn.base, btn.sm, isRunning ? 'text-cyber-text-dim border-cyber-border/30 cursor-not-allowed' : btn.primary)}
                 >
-                  <Play size={9} />
-                  RUN
+                  <Play size={9} />RUN
                 </button>
               </div>
             </div>
@@ -247,53 +219,38 @@ export default function AutomationsPage() {
         })}
       </div>
 
-      {/* ══ LOG PANEL ══ */}
+      {/* ── Log panel ── */}
       {selectedTask && (
-        <div className="rounded-lg border border-cyber-border bg-cyber-bg overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-cyber-border bg-cyber-panel/60">
+        <div className={logPanel.container}>
+          <div className={logPanel.header}>
             <Terminal size={12} className="text-cyber-cyan" />
-            <span className="text-xs font-mono font-bold text-cyber-text tracking-wider">{selectedTask.label.toUpperCase()}</span>
-            {selectedState?.status === 'running' && (
-              <span className="text-[10px] font-mono text-cyber-cyan animate-pulse ml-auto">● RUNNING</span>
-            )}
-            {selectedState?.status === 'done' && (
-              <span className="text-[10px] font-mono text-cyber-green ml-auto">● DONE · EXIT 0</span>
-            )}
-            {selectedState?.status === 'error' && (
-              <span className="text-[10px] font-mono text-cyber-red ml-auto">● ERROR · EXIT {selectedState.exitCode}</span>
-            )}
-            {selectedState?.status === 'compliant' && (
-              <span className="text-[10px] font-mono text-cyber-green ml-auto">● COMPLIANT · NO ACTION</span>
-            )}
-            {selectedState?.status === 'executed' && (
-              <span className="text-[10px] font-mono text-cyber-cyan ml-auto">● EXECUTED · EXIT 0</span>
-            )}
-            {selectedState?.status === 'idle' && selectedState.lastRunAt && selectedState.lastRunStatus && (
-              <span className={clsx('text-[10px] font-mono ml-auto flex items-center gap-1', STATUS_COLOR[selectedState.lastRunStatus])}>
-                <History size={10} />
-                LAST: {selectedState.lastRunStatus.toUpperCase()} · {formatRelative(selectedState.lastRunAt)}
-              </span>
-            )}
+            <span className={text.value}>{selectedTask.label.toUpperCase()}</span>
+            <span className={clsx('text-[10px] font-mono ml-auto', {
+              [status.running]: selectedState?.status === 'running',
+              [status.done]:    selectedState?.status === 'done' || selectedState?.status === 'compliant',
+              [status.error]:   selectedState?.status === 'error',
+              [text.dim]:       !selectedState || selectedState.status === 'idle',
+            })}>
+              {selectedState?.status === 'running'   ? '● RUNNING'
+                : selectedState?.status === 'done'     ? '● DONE · EXIT 0'
+                : selectedState?.status === 'error'    ? `● ERROR · EXIT ${selectedState.exitCode}`
+                : selectedState?.status === 'compliant'? '● COMPLIANT · NO ACTION'
+                : selectedState?.status === 'executed' ? '● EXECUTED · EXIT 0'
+                : selectedState?.lastRunAt && selectedState.lastRunStatus
+                  ? `LAST: ${selectedState.lastRunStatus.toUpperCase()} · ${formatRelative(selectedState.lastRunAt)}`
+                  : ''}
+            </span>
           </div>
-          <div
-            ref={logRef}
-            className="h-64 overflow-y-auto p-3 text-[11px] font-mono leading-relaxed"
-            style={{ scrollBehavior: 'smooth' }}
-          >
-            {(!selectedState?.lines.length && selectedState?.status === 'idle') && (
-              <span className="text-cyber-text-dim">
+          <div ref={logRef} className={clsx(logPanel.body, 'h-64')} style={{ scrollBehavior: 'smooth' }}>
+            {!selectedState?.lines.length && selectedState?.status === 'idle' && (
+              <span className={text.dim}>
                 {selectedState.lastRunAt
                   ? `Last run ${formatRelative(selectedState.lastRunAt)} — click RUN to check again.`
                   : 'Click RUN to start.'}
               </span>
             )}
             {selectedState?.lines.map((line, i) => (
-              <div
-                key={i}
-                className={clsx(
-                  line.startsWith('[ERRO]') ? 'text-cyber-red' : 'text-cyber-text',
-                )}
-              >
+              <div key={i} className={line.startsWith('[ERRO]') ? logPanel.lineErr : logPanel.lineOk}>
                 {line || ' '}
               </div>
             ))}
@@ -303,6 +260,7 @@ export default function AutomationsPage() {
           </div>
         </div>
       )}
+
     </div>
   )
 }
