@@ -49,29 +49,23 @@ Start-Sleep -Milliseconds 300
 # ── Load modules ──────────────────────────────────────────────────────────────
 # Each module dot-sources to define Invoke-Check/Apply/Rollback + $ModuleMeta.
 # We capture ScriptBlock immediately after each load (before next module overwrites).
-$modules = @()
+$modules = New-Object System.Collections.ArrayList
 $moduleFiles = Get-ChildItem $ModulesDir -Filter '*.ps1' | Sort-Object Name
-Write-Host "  [DBG] Found $($moduleFiles.Count) files in: $ModulesDir" -ForegroundColor DarkCyan
 
 foreach ($file in $moduleFiles) {
-    Write-Host "  [DBG] Loading $($file.Name)..." -NoNewline -ForegroundColor DarkCyan
     try {
         . $file.FullName
 
-        # Use -ValueOnly so we get the hashtable directly, not a PSVariable wrapper
         $metaVal = Get-Variable -Name 'ModuleMeta' -ValueOnly -ErrorAction SilentlyContinue
-        if (-not $metaVal) { Write-Host " SKIP(no meta)" -ForegroundColor Yellow; continue }
+        if (-not $metaVal) { continue }
 
-        # Extract primitive values immediately before next module overwrites $ModuleMeta
         $mid  = [string]$metaVal.Id
         $mdn  = [string]$metaVal.DisplayName
         $mrsk = [string]$metaVal.Risk
         $mgpo = [string]$metaVal.GpoConflict
         $msaf = [bool]  $metaVal.Safe
-        if (-not $mid) { Write-Host " SKIP(no id)" -ForegroundColor Yellow; continue }
+        if (-not $mid) { continue }
 
-        # Create fully independent ScriptBlocks via ::Create() so FunctionInfo
-        # updates in-place (PS5.1 behaviour) cannot affect previously captured blocks
         $checkFnItem    = Get-Item Function:\Invoke-Check    -ErrorAction SilentlyContinue
         $applyFnItem    = Get-Item Function:\Invoke-Apply    -ErrorAction SilentlyContinue
         $rollbackFnItem = Get-Item Function:\Invoke-Rollback -ErrorAction SilentlyContinue
@@ -80,9 +74,9 @@ foreach ($file in $moduleFiles) {
         $applySB    = if ($applyFnItem)    { [scriptblock]::Create($applyFnItem.ScriptBlock.ToString())    } else { $null }
         $rollbackSB = if ($rollbackFnItem) { [scriptblock]::Create($rollbackFnItem.ScriptBlock.ToString()) } else { $null }
 
-        if (-not $checkSB -or -not $applySB) { Write-Host " SKIP(no fn)" -ForegroundColor Yellow; continue }
+        if (-not $checkSB -or -not $applySB) { continue }
 
-        $modules += [PSCustomObject]@{
+        $null = $modules.Add([PSCustomObject]@{
             Id          = $mid
             DisplayName = $mdn
             Risk        = $mrsk
@@ -91,12 +85,11 @@ foreach ($file in $moduleFiles) {
             CheckSB     = $checkSB
             ApplySB     = $applySB
             RollbackSB  = $rollbackSB
-        }
-        Write-Host " OK($mdn)[count=$($modules.Count)]" -ForegroundColor Green
+        })
 
         Remove-Variable 'ModuleMeta' -ErrorAction SilentlyContinue
     } catch {
-        Write-Host " ERR: $_" -ForegroundColor Red
+        Write-Host "  [!] Failed to load $($file.Name): $_" -ForegroundColor Red
     }
 }
 
