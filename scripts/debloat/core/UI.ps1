@@ -39,7 +39,7 @@ function Write-CheckLine([string]$Name, [string]$Status) {
     $badge = ("[" + $Status + "]").PadRight(14)
     Write-Host "  " -NoNewline
     Write-Host $badge -NoNewline -ForegroundColor $color
-    Write-Host $Name -ForegroundColor White
+    Write-Host $Name -ForegroundColor Cyan
 }
 
 function Write-StatusLine([string]$Name, [string]$Status, [string]$Detail = '') {
@@ -89,7 +89,7 @@ function Write-MenuRow([int]$Num, [bool]$Selected, [string]$Name, [string]$Statu
     }
     $rowColor = if ($Selected) { 'Cyan' } else { 'DarkGray' }
     Write-Host "  [$check] $numStr  " -NoNewline -ForegroundColor $rowColor
-    Write-Host $nameStr -NoNewline -ForegroundColor White
+    Write-Host $nameStr -NoNewline -ForegroundColor Cyan
     Write-Host $Status -ForegroundColor $statusColor
 }
 

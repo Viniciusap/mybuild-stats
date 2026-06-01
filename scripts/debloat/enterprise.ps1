@@ -56,27 +56,36 @@ foreach ($file in $moduleFiles) {
     try {
         . $file.FullName
 
-        if (-not (Get-Variable -Name 'ModuleMeta' -ErrorAction SilentlyContinue)) { continue }
-        $meta = $ModuleMeta
-        if (-not $meta) { continue }
+        # Use -ValueOnly so we get the hashtable directly, not a PSVariable wrapper
+        $metaVal = Get-Variable -Name 'ModuleMeta' -ValueOnly -ErrorAction SilentlyContinue
+        if (-not $metaVal) { continue }
 
-        # Capture ScriptBlocks NOW before next module overwrites the function names
+        # Extract primitive values immediately before next module overwrites $ModuleMeta
+        $mid  = [string]$metaVal.Id
+        $mdn  = [string]$metaVal.DisplayName
+        $mrsk = [string]$metaVal.Risk
+        $mgpo = [string]$metaVal.GpoConflict
+        $msaf = [bool]  $metaVal.Safe
+        if (-not $mid) { continue }
+
+        # Create fully independent ScriptBlocks via ::Create() so FunctionInfo
+        # updates in-place (PS5.1 behaviour) cannot affect previously captured blocks
         $checkFnItem    = Get-Item Function:\Invoke-Check    -ErrorAction SilentlyContinue
         $applyFnItem    = Get-Item Function:\Invoke-Apply    -ErrorAction SilentlyContinue
         $rollbackFnItem = Get-Item Function:\Invoke-Rollback -ErrorAction SilentlyContinue
 
-        $checkSB    = if ($checkFnItem)    { $checkFnItem.ScriptBlock    } else { $null }
-        $applySB    = if ($applyFnItem)    { $applyFnItem.ScriptBlock    } else { $null }
-        $rollbackSB = if ($rollbackFnItem) { $rollbackFnItem.ScriptBlock } else { $null }
+        $checkSB    = if ($checkFnItem)    { [scriptblock]::Create($checkFnItem.ScriptBlock.ToString())    } else { $null }
+        $applySB    = if ($applyFnItem)    { [scriptblock]::Create($applyFnItem.ScriptBlock.ToString())    } else { $null }
+        $rollbackSB = if ($rollbackFnItem) { [scriptblock]::Create($rollbackFnItem.ScriptBlock.ToString()) } else { $null }
 
         if (-not $checkSB -or -not $applySB) { continue }
 
         $modules += [PSCustomObject]@{
-            Id          = $meta.Id
-            DisplayName = $meta.DisplayName
-            Risk        = $meta.Risk
-            GpoConflict = $meta.GpoConflict
-            Safe        = $meta.Safe
+            Id          = $mid
+            DisplayName = $mdn
+            Risk        = $mrsk
+            GpoConflict = $mgpo
+            Safe        = $msaf
             CheckSB     = $checkSB
             ApplySB     = $applySB
             RollbackSB  = $rollbackSB
@@ -92,6 +101,8 @@ if ($modules.Count -eq 0) {
     Write-Host "  [!] No modules found in: $ModulesDir" -ForegroundColor Red
     exit 1
 }
+Write-Host "  " -NoNewline
+Write-Host "$($modules.Count) modules loaded" -ForegroundColor DarkGray
 
 # ── Pre-check ─────────────────────────────────────────────────────────────────
 $checkResults = @{}
