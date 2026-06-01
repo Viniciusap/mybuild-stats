@@ -92,7 +92,7 @@ foreach ($file in $moduleFiles) {
             ApplySB     = $applySB
             RollbackSB  = $rollbackSB
         }
-        Write-Host " OK($mdn)" -ForegroundColor Green
+        Write-Host " OK($mdn)[count=$($modules.Count)]" -ForegroundColor Green
 
         Remove-Variable 'ModuleMeta' -ErrorAction SilentlyContinue
     } catch {
