@@ -49,7 +49,7 @@ Start-Sleep -Milliseconds 300
 # ── Load modules ──────────────────────────────────────────────────────────────
 # Each module dot-sources to define Invoke-Check/Apply/Rollback + $ModuleMeta.
 # We capture ScriptBlock immediately after each load (before next module overwrites).
-$modules = [System.Collections.Generic.List[PSCustomObject]]::new()
+$modules = @()
 $moduleFiles = Get-ChildItem $ModulesDir -Filter '*.ps1' | Sort-Object Name
 
 foreach ($file in $moduleFiles) {
@@ -71,7 +71,7 @@ foreach ($file in $moduleFiles) {
 
         if (-not $checkSB -or -not $applySB) { continue }
 
-        $modules.Add([PSCustomObject]@{
+        $modules += [PSCustomObject]@{
             Id          = $meta.Id
             DisplayName = $meta.DisplayName
             Risk        = $meta.Risk
@@ -80,7 +80,7 @@ foreach ($file in $moduleFiles) {
             CheckSB     = $checkSB
             ApplySB     = $applySB
             RollbackSB  = $rollbackSB
-        })
+        }
 
         Remove-Variable 'ModuleMeta' -ErrorAction SilentlyContinue
     } catch {

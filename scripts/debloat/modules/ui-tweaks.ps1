@@ -29,8 +29,8 @@ function Invoke-Check {
 }
 
 function Invoke-Apply {
-    $applied = [System.Collections.Generic.List[string]]::new()
-    $errors  = [System.Collections.Generic.List[string]]::new()
+    $applied = @()
+    $errors  = @()
 
     $tweaks = @(
         # Win10 classic context menu
@@ -74,9 +74,9 @@ function Invoke-Apply {
             } else {
                 Set-ItemProperty -Path $tweak.Path -Name $tweak.Name -Value $tweak.Value -Type DWord -Force -ErrorAction Stop
             }
-            $applied.Add($tweak.Label)
+            $applied += $tweak.Label
         } catch {
-            $errors.Add($tweak.Label)
+            $errors += $tweak.Label
         }
     }
 

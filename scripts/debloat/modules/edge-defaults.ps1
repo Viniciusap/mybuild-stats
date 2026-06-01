@@ -36,7 +36,7 @@ function Invoke-Apply {
         return @{ Status = 'Failed'; Detail = 'GPO policy locked - Edge settings managed by organization' }
     }
 
-    $changes = [System.Collections.Generic.List[string]]::new()
+    $changes = @()
 
     try {
         # Remove Edge from startup (auto-launch after install)
@@ -45,7 +45,7 @@ function Invoke-Apply {
         if ($runProps) {
             $runProps.PSObject.Properties | Where-Object { $_.Name -match 'Edge' -or $_.Name -match 'msedge' } | ForEach-Object {
                 Remove-ItemProperty -Path $runPath -Name $_.Name -ErrorAction SilentlyContinue
-                $changes.Add('startup removed')
+                $changes += 'startup removed'
             }
         }
 
@@ -53,11 +53,11 @@ function Invoke-Apply {
         $edgePolicyPath = 'HKCU:\SOFTWARE\Policies\Microsoft\Edge'
         if (-not (Test-Path $edgePolicyPath)) { New-Item -Path $edgePolicyPath -Force | Out-Null }
         Set-ItemProperty -Path $edgePolicyPath -Name 'NewTabPageNewsListFeedEnabled' -Value 0 -Type DWord -Force
-        $changes.Add('news feed disabled')
+        $changes += 'news feed disabled'
 
         # Disable Edge first-run experience
         Set-ItemProperty -Path $edgePolicyPath -Name 'HideFirstRunExperience' -Value 1 -Type DWord -Force
-        $changes.Add('first-run hidden')
+        $changes += 'first-run hidden'
 
         # Disable default browser prompt
         Set-ItemProperty -Path $edgePolicyPath -Name 'DefaultBrowserSettingEnabled' -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
