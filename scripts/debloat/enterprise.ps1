@@ -49,7 +49,7 @@ Start-Sleep -Milliseconds 300
 # ── Load modules ──────────────────────────────────────────────────────────────
 # Each module dot-sources to define Invoke-Check/Apply/Rollback + $ModuleMeta.
 # We capture ScriptBlock immediately after each load (before next module overwrites).
-$modules = New-Object System.Collections.ArrayList
+$moduleList = New-Object System.Collections.ArrayList
 $moduleFiles = Get-ChildItem $ModulesDir -Filter '*.ps1' | Sort-Object Name
 
 foreach ($file in $moduleFiles) {
@@ -76,7 +76,7 @@ foreach ($file in $moduleFiles) {
 
         if (-not $checkSB -or -not $applySB) { continue }
 
-        $null = $modules.Add([PSCustomObject]@{
+        $null = $moduleList.Add([PSCustomObject]@{
             Id          = $mid
             DisplayName = $mdn
             Risk        = $mrsk
@@ -93,19 +93,19 @@ foreach ($file in $moduleFiles) {
     }
 }
 
-if ($modules.Count -eq 0) {
+if ($moduleList.Count -eq 0) {
     Write-Host "  [!] No modules found in: $ModulesDir" -ForegroundColor Red
     exit 1
 }
 Write-Host "  " -NoNewline
-Write-Host "$($modules.Count) modules loaded" -ForegroundColor DarkGray
+Write-Host "$($moduleList.Count) modules loaded" -ForegroundColor DarkGray
 
 # ── Pre-check ─────────────────────────────────────────────────────────────────
 $checkResults = @{}
 Write-Host ""
 Write-SectionHeader "SYSTEM SCAN RESULTS"
 Write-Host ""
-foreach ($m in $modules) {
+foreach ($m in $moduleList) {
     $present = & $m.CheckSB
     $status  = if ($present) { 'PRESENT' } else { 'NOT FOUND' }
     Write-CheckLine $m.DisplayName $status
@@ -117,9 +117,9 @@ Write-Host ""
 if ($NonInteractive) {
     if ($Modules) {
         $ids = $Modules -split ',' | ForEach-Object { $_.Trim() }
-        $selected = @($modules | Where-Object { $ids -contains $_.Id -and $checkResults[$_.Id] })
+        $selected = @($moduleList | Where-Object { $ids -contains $_.Id -and $checkResults[$_.Id] })
     } elseif ($All) {
-        $selected = @($modules | Where-Object { $checkResults[$_.Id] })
+        $selected = @($moduleList | Where-Object { $checkResults[$_.Id] })
     } else {
         Write-Host "  [!] Use -All or -Modules 'id1,id2' with -NonInteractive." -ForegroundColor Yellow
         exit 0
@@ -131,7 +131,7 @@ if ($NonInteractive) {
 
     # ── Interactive menu ───────────────────────────────────────────────────────
     $selectedIds = @{}
-    foreach ($m in $modules) { $selectedIds[$m.Id] = $checkResults[$m.Id] }
+    foreach ($m in $moduleList) { $selectedIds[$m.Id] = $checkResults[$m.Id] }
 
     while ($true) {
         Clear-Screen
@@ -142,7 +142,7 @@ if ($NonInteractive) {
         Write-Divider
 
         $i = 1
-        foreach ($m in $modules) {
+        foreach ($m in $moduleList) {
             $status = if ($checkResults[$m.Id]) { 'PRESENT' } else { 'NOT FOUND' }
             Write-MenuRow $i $selectedIds[$m.Id] $m.DisplayName $status
             $i++
@@ -159,11 +159,11 @@ if ($NonInteractive) {
         if ($rawInput -eq 'Q' -or $rawInput -eq 'q')   { Write-Host "  Aborted." -ForegroundColor Yellow; exit 0 }
 
         if ($rawInput -eq 'A' -or $rawInput -eq 'a') {
-            foreach ($m in $modules) { if ($checkResults[$m.Id]) { $selectedIds[$m.Id] = $true } }
+            foreach ($m in $moduleList) { if ($checkResults[$m.Id]) { $selectedIds[$m.Id] = $true } }
             continue
         }
         if ($rawInput -eq 'N' -or $rawInput -eq 'n') {
-            foreach ($m in $modules) { $selectedIds[$m.Id] = $false }
+            foreach ($m in $moduleList) { $selectedIds[$m.Id] = $false }
             continue
         }
 
@@ -171,8 +171,8 @@ if ($NonInteractive) {
             $num = 0
             if ([int]::TryParse($token, [ref]$num)) {
                 $idx = $num - 1
-                if ($idx -ge 0 -and $idx -lt $modules.Count) {
-                    $m = $modules[$idx]
+                if ($idx -ge 0 -and $idx -lt $moduleList.Count) {
+                    $m = $moduleList[$idx]
                     if (-not $checkResults[$m.Id]) {
                         Write-Host "  [!] '$($m.DisplayName)' not present on this system" -ForegroundColor Red
                         Start-Sleep -Milliseconds 800
@@ -184,7 +184,7 @@ if ($NonInteractive) {
         }
     }
 
-    $selected = @($modules | Where-Object { $selectedIds[$_.Id] })
+    $selected = @($moduleList | Where-Object { $selectedIds[$_.Id] })
 
     # ── Confirm ────────────────────────────────────────────────────────────────
     if ($selected.Count -eq 0) {
