@@ -51,14 +51,16 @@ Start-Sleep -Milliseconds 300
 # We capture ScriptBlock immediately after each load (before next module overwrites).
 $modules = @()
 $moduleFiles = Get-ChildItem $ModulesDir -Filter '*.ps1' | Sort-Object Name
+Write-Host "  [DBG] Found $($moduleFiles.Count) files in: $ModulesDir" -ForegroundColor DarkCyan
 
 foreach ($file in $moduleFiles) {
+    Write-Host "  [DBG] Loading $($file.Name)..." -NoNewline -ForegroundColor DarkCyan
     try {
         . $file.FullName
 
         # Use -ValueOnly so we get the hashtable directly, not a PSVariable wrapper
         $metaVal = Get-Variable -Name 'ModuleMeta' -ValueOnly -ErrorAction SilentlyContinue
-        if (-not $metaVal) { continue }
+        if (-not $metaVal) { Write-Host " SKIP(no meta)" -ForegroundColor Yellow; continue }
 
         # Extract primitive values immediately before next module overwrites $ModuleMeta
         $mid  = [string]$metaVal.Id
@@ -66,7 +68,7 @@ foreach ($file in $moduleFiles) {
         $mrsk = [string]$metaVal.Risk
         $mgpo = [string]$metaVal.GpoConflict
         $msaf = [bool]  $metaVal.Safe
-        if (-not $mid) { continue }
+        if (-not $mid) { Write-Host " SKIP(no id)" -ForegroundColor Yellow; continue }
 
         # Create fully independent ScriptBlocks via ::Create() so FunctionInfo
         # updates in-place (PS5.1 behaviour) cannot affect previously captured blocks
@@ -78,7 +80,7 @@ foreach ($file in $moduleFiles) {
         $applySB    = if ($applyFnItem)    { [scriptblock]::Create($applyFnItem.ScriptBlock.ToString())    } else { $null }
         $rollbackSB = if ($rollbackFnItem) { [scriptblock]::Create($rollbackFnItem.ScriptBlock.ToString()) } else { $null }
 
-        if (-not $checkSB -or -not $applySB) { continue }
+        if (-not $checkSB -or -not $applySB) { Write-Host " SKIP(no fn)" -ForegroundColor Yellow; continue }
 
         $modules += [PSCustomObject]@{
             Id          = $mid
@@ -90,10 +92,11 @@ foreach ($file in $moduleFiles) {
             ApplySB     = $applySB
             RollbackSB  = $rollbackSB
         }
+        Write-Host " OK($mdn)" -ForegroundColor Green
 
         Remove-Variable 'ModuleMeta' -ErrorAction SilentlyContinue
     } catch {
-        Write-Host "  [!] Failed to load $($file.Name): $_" -ForegroundColor Red
+        Write-Host " ERR: $_" -ForegroundColor Red
     }
 }
 
