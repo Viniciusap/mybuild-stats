@@ -13,7 +13,6 @@ $XboxServices = @(
     'XblGameSave'
     'XboxNetApiSvc'
     'XboxGipSvc'
-    'XboxGipSvc'
 )
 
 function Invoke-Check {
@@ -26,9 +25,9 @@ function Invoke-Check {
 
 function Invoke-Apply {
     $changed = 0
-    $errors  = [System.Collections.Generic.List[string]]::new()
+    $errors  = @()
 
-    foreach ($name in ($XboxServices | Select-Object -Unique)) {
+    foreach ($name in $XboxServices) {
         $svc = Get-Service $name -ErrorAction SilentlyContinue
         if ($null -eq $svc) { continue }
         if ($svc.StartType -eq 'Disabled') { continue }
@@ -37,7 +36,7 @@ function Invoke-Apply {
             Set-Service  $name -StartupType Disabled -ErrorAction Stop
             $changed++
         } catch {
-            $errors.Add($name)
+            $errors += $name
         }
     }
 

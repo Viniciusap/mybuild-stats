@@ -104,10 +104,10 @@ function Show-BloatwareMenu([array]$Found) {
 
 function Invoke-Apply {
     # Detect which apps are actually present
-    $found = [System.Collections.Generic.List[hashtable]]::new()
+    $found = @()
     foreach ($pkg in $BloatwareList) {
         if (Get-AppxPackage -AllUsers -Name $pkg.Id -ErrorAction SilentlyContinue) {
-            $found.Add($pkg)
+            $found += $pkg
         }
     }
 
@@ -122,8 +122,8 @@ function Invoke-Apply {
         return @{ Status = 'Skipped'; Detail = 'No apps selected' }
     }
 
-    $removed = [System.Collections.Generic.List[string]]::new()
-    $failed  = [System.Collections.Generic.List[string]]::new()
+    $removed = @()
+    $failed  = @()
 
     foreach ($pkg in $toRemove) {
         $app = Get-AppxPackage -AllUsers -Name $pkg.Id -ErrorAction SilentlyContinue
@@ -134,13 +134,13 @@ function Invoke-Apply {
                 Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Out-Null
 
             Remove-AppxPackage -Package $app.PackageFullName -AllUsers -ErrorAction Stop
-            $removed.Add($pkg.Label)
+            $removed += $pkg.Label
         } catch {
             try {
                 Remove-AppxPackage -Package $app.PackageFullName -ErrorAction Stop
-                $removed.Add($pkg.Label)
+                $removed += $pkg.Label
             } catch {
-                $failed.Add($pkg.Label)
+                $failed += $pkg.Label
             }
         }
     }

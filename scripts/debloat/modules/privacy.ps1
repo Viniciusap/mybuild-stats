@@ -51,7 +51,7 @@ function Invoke-Check {
 
 function Invoke-Apply {
     $changed = 0
-    $errors  = [System.Collections.Generic.List[string]]::new()
+    $errors  = @()
 
     foreach ($key in $PrivacyKeys) {
         try {
@@ -59,7 +59,7 @@ function Invoke-Apply {
             Set-ItemProperty -Path $key.Path -Name $key.Name -Value $key.Value -Type DWord -Force -ErrorAction Stop
             $changed++
         } catch {
-            $errors.Add($key.Name)
+            $errors += $key.Name
         }
     }
 
