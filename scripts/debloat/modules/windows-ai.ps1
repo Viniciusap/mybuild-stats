@@ -25,10 +25,21 @@ function Invoke-Check {
 }
 
 function Invoke-Apply {
-    $scriptDir = Split-Path $PSScriptRoot -Parent | Split-Path -Parent
-    $runScript = Join-Path $scriptDir 'run-remove-ai.ps1'
+    # Locate run-remove-ai.ps1 regardless of invocation context.
+    # Via enterprise.ps1: $ScriptDir (inherited scope) = scripts\debloat\ -> parent = scripts\
+    # Standalone module:  $PSScriptRoot = scripts\debloat\modules\      -> two parents = scripts\
+    $runScript = $null
+    $sbBase = if ($ScriptDir) {
+        Split-Path $ScriptDir -Parent
+    } elseif ($PSScriptRoot) {
+        try { Split-Path (Split-Path $PSScriptRoot -Parent) -Parent } catch { $null }
+    }
+    if ($sbBase) {
+        $candidate = Join-Path $sbBase 'run-remove-ai.ps1'
+        if (Test-Path $candidate) { $runScript = $candidate }
+    }
 
-    if (-not (Test-Path $runScript)) {
+    if (-not $runScript) {
         # Fallback: apply minimal registry policies directly
         try {
             $aiPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'
