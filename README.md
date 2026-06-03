@@ -1,20 +1,45 @@
 # MyBuild Stats
 
-A local, self-hosted hardware dashboard for Windows. Monitors your PC in real time, tracks component depreciation, watches upgrade prices, runs system maintenance tasks, and manages developer tools — all from a clean dark-mode web UI.
+Two tools for the serious Windows user — pick your path:
+
+| | [🎮 Gamer Dashboard](#-gamer-dashboard) | [🏢 Enterprise Debloat](#-enterprise-debloat) |
+|---|---|---|
+| **What** | Self-hosted web dashboard for your PC build | PowerShell debloat CLI for Windows |
+| **Who** | PC enthusiasts, gamers, builders | IT admins, power users |
+| **How** | `npm run dev` → open localhost:3000 | One PowerShell one-liner |
+| **Requires** | Node.js 18+, Windows 10/11 | Windows 10/11, PowerShell 5.1 |
+| **Features** | Hardware gauges, upgrade tracking, price alerts, maintenance automations, dev tools manager | Interactive menu or silent CLI, 10 modules, audit log, GPO-safe |
+
+---
+
+## Contents
+
+- [🎮 Gamer Dashboard](#-gamer-dashboard)
+  - [Features](#features)
+  - [Tech Stack](#tech-stack)
+  - [Project Structure](#project-structure)
+  - [Setup](#setup)
+  - [Configuration](#configuration-per-pc)
+- [🏢 Enterprise Debloat](#-enterprise-debloat)
+  - [Quick Start](#quick-start)
+  - [Module List](#full-module-list)
+  - [Enterprise / IT Admin](#enterprise--it-admin)
+  - [Architecture](#architecture)
+- [Roadmap](#roadmap)
+
+---
+
+---
+
+## 🎮 Gamer Dashboard
 
 **[Live Demo](https://viniciusap.github.io/mybuild-stats/)** — static preview with mock data.
 
----
+Local, self-hosted hardware command center for Windows. Monitors your PC in real time, tracks component depreciation, watches upgrade prices, runs maintenance tasks, and manages dev tools — all from a clean dark-mode web UI.
 
-## Purpose
+### Features
 
-MyBuild Stats is a personal command center for PC enthusiasts who want more than Task Manager. It reads live hardware data, helps you decide *when* to upgrade (not just *what* to upgrade to), tracks component resale value over time, keeps your system healthy through one-click automations, and gives you a full overview of your developer environment — no cloud, no account, no telemetry.
-
----
-
-## Features
-
-### Hardware Dashboard
+#### Hardware Dashboard
 
 Real-time gauges for every major component, auto-refreshed every 15 seconds.
 
@@ -162,6 +187,192 @@ Each tool card shows:
 
 ---
 
+---
+
+## 🏢 Enterprise Debloat
+
+Standalone PowerShell debloat CLI in `scripts/debloat/`. No installation, no cloning — runs from any Windows machine with a single one-liner. Scans the system first and only acts on what's actually present.
+
+### Quick Start
+
+Paste in any PowerShell window (UAC prompt appears automatically):
+
+```powershell
+powershell -ExecutionPolicy Bypass -Command "iwr 'https://raw.githubusercontent.com/Viniciusap/mybuild-stats/master/scripts/debloat/launcher.ps1' -OutFile 'C:\Windows\Temp\debloat.ps1' -UseBasicParsing; & 'C:\Windows\Temp\debloat.ps1'"
+```
+
+Downloads the scripts to `%TEMP%`, runs, cleans up. No install, no cloning required.
+
+#### What you see
+
+```
+  +----------------------------------------------+
+  | ENTERPRISE DEBLOAT TOOL  v1.0.0              |
+  | Machine: YOUR-PC  Build: 26100               |
+  +----------------------------------------------+
+
+  [+] Running as Administrator
+
+  Scanning system...
+  10 modules loaded
+
+  SYSTEM SCAN RESULTS
+  [PRESENT   ]  Bloatware Apps
+  [PRESENT   ]  Telemetry Services
+  [NOT FOUND ]  OneDrive
+  [NOT FOUND ]  Cortana
+  ...
+
+  SELECT MODULES TO APPLY
+  [X]  1  Bloatware Apps          PRESENT
+  [X]  2  Telemetry Services      PRESENT
+  [ ]  3  OneDrive                NOT FOUND
+  ...
+
+  Toggle: numbers | [A] All present | [N] Clear | [Enter] Apply | [Q] Quit
+```
+
+Select modules by typing their numbers, press Enter to apply. A **reusable command** is printed at the end — copy it to run the same selection silently on other machines.
+
+#### Preview mode (no writes)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\debloat\preview.ps1
+```
+
+---
+
+### Silent / IT Admin Mode
+
+Silent, scriptable deployment. Idempotent — safe to run repeatedly or push via GPO.
+
+#### Enterprise / IT Admin — Local run
+
+```powershell
+# Interactive (same as Gamer Path — with GPO warnings per module)
+powershell.exe -ExecutionPolicy Bypass -File scripts\debloat\enterprise.ps1
+
+# Apply all present modules silently
+powershell.exe -ExecutionPolicy Bypass -File scripts\debloat\enterprise.ps1 -NonInteractive -All
+
+# Apply specific modules silently
+powershell.exe -ExecutionPolicy Bypass -File scripts\debloat\enterprise.ps1 -NonInteractive -Modules "telemetry,cortana,bloatware"
+```
+
+#### One-liner (no cloning)
+
+```powershell
+# Interactive
+powershell -ExecutionPolicy Bypass -Command "iwr 'https://raw.githubusercontent.com/Viniciusap/mybuild-stats/master/scripts/debloat/launcher.ps1' -OutFile 'C:\Windows\Temp\debloat.ps1' -UseBasicParsing; & 'C:\Windows\Temp\debloat.ps1'"
+
+# Non-interactive, all present modules
+powershell -ExecutionPolicy Bypass -Command "iwr '...\launcher.ps1' -OutFile 'C:\Windows\Temp\debloat.ps1' -UseBasicParsing; & 'C:\Windows\Temp\debloat.ps1' -NonInteractive -All"
+
+# Non-interactive, specific modules
+powershell -ExecutionPolicy Bypass -Command "iwr '...\launcher.ps1' -OutFile 'C:\Windows\Temp\debloat.ps1' -UseBasicParsing; & 'C:\Windows\Temp\debloat.ps1' -NonInteractive -Modules 'telemetry,cortana,bloatware'"
+```
+
+Replace `'...\launcher.ps1'` with the full raw GitHub URL shown above.
+
+#### GPO Startup Script
+
+Apply to all domain machines at login:
+
+```
+Computer Configuration → Windows Settings → Scripts → Startup
+Script: powershell.exe
+Arguments: -NoProfile -ExecutionPolicy Bypass -File \\server\share\scripts\debloat\enterprise.ps1 -NonInteractive -All
+```
+
+Or via a network share with the launcher:
+
+```
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& '\\server\share\scripts\debloat\launcher.ps1' -NonInteractive -All"
+```
+
+#### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `-NonInteractive` | Switch | Skip menus — requires `-All` or `-Modules` |
+| `-All` | Switch | Apply all modules where system scan returns PRESENT |
+| `-Modules` | String | Comma-separated module IDs to apply, e.g. `"telemetry,cortana"` |
+
+### Full Module List
+
+| ID | Module | Description | Risk | GPO Conflict |
+|----|--------|-------------|------|-------------|
+| `bloatware` | Bloatware Apps | Interactive sub-menu — removes only apps detected on the machine from a list of 33 consumer apps | Low | — |
+| `telemetry` | Telemetry Services | Disables `DiagTrack`, `dmwappushservice`, sets `AllowTelemetry=0` | Low | — |
+| `cortana` | Cortana | Sets `AllowCortana=0`, disables web search, removes Cortana AppX | Low | CortanaEnabled GPO |
+| `onedrive` | OneDrive | Runs the built-in uninstaller, removes startup entry, blocks re-install via policy | Medium | SharePoint Sync GPO |
+| `windows-ai` | Windows AI / Copilot | Removes Copilot/Recall/WindowsAI packages, enforces `DisableAIDataAnalysis=1` and `TurnOffWindowsCopilot=1` | Medium | WindowsAI GPO |
+| `xbox-services` | Xbox Services | Sets `XblAuthManager`, `XblGameSave`, `XboxNetApiSvc`, `XboxGipSvc` to Disabled | Low | — |
+| `teams-consumer` | Teams (Consumer) | Removes personal Teams AppX (preserves Teams Work/School), clears startup entry | Low | — |
+| `edge-defaults` | Edge Defaults | Removes Edge from startup, disables news feed and first-run page | Low | Edge GPO policies |
+| `privacy` | Privacy Settings | 16 registry keys: advertising ID, online speech, inking, activity history, location, Find My Device, delivery optimization | Low | Location/FindMyDevice MDM |
+| `ui-tweaks` | UI / Taskbar Tweaks | Win10 context menu, widgets, Chat icon, Snap Layouts, search highlights, 365 ads, Game DVR, Task View | Low | — |
+
+#### Audit log
+
+Every run saves a JSON log to `C:\Debloat\logs\YYYY-MM-DD_HH-MM-SS.json`:
+
+```json
+{
+  "machine": "CORP-PC-01",
+  "user": "jdoe",
+  "timestamp": "2026-06-03T14:22:01",
+  "results": {
+    "telemetry":  { "Status": "Changed", "Detail": "DiagTrack disabled, AllowTelemetry=0" },
+    "cortana":    { "Status": "Changed", "Detail": "AllowCortana=0, web search disabled" },
+    "bloatware":  { "Status": "Skipped", "Detail": "No bloatware found" }
+  }
+}
+```
+
+Status values: `Changed` · `Skipped` · `Failed`
+
+#### Reusable command
+
+After an interactive run, the tool prints a ready-to-use command with the exact modules you selected:
+
+```
+powershell -ExecutionPolicy Bypass -Command "iwr '...\launcher.ps1' -OutFile 'C:\Windows\Temp\debloat.ps1' -UseBasicParsing; & 'C:\Windows\Temp\debloat.ps1' -NonInteractive -Modules 'telemetry,cortana,bloatware'"
+```
+
+Copy and run on other machines without going through the menu again.
+
+### Architecture
+
+```
+scripts/debloat/
+├── enterprise.ps1       ← entry point (-NonInteractive, -All, -Modules)
+├── launcher.ps1         ← downloads repo zip + runs enterprise.ps1 (no git required)
+├── preview.ps1          ← dry run — shows what would change, no writes
+├── core/
+│   ├── AdminCheck.ps1   ← auto-elevates to Admin via UAC
+│   ├── UI.ps1           ← ASCII box drawing, progress bar, color helpers
+│   ├── Logger.ps1       ← writes JSON run log to C:\Debloat\logs\
+│   └── Runner.ps1       ← menu, pre-check, apply loop helpers
+└── modules/
+    ├── bloatware.ps1
+    ├── cortana.ps1
+    ├── edge-defaults.ps1
+    ├── onedrive.ps1
+    ├── privacy.ps1
+    ├── teams-consumer.ps1
+    ├── telemetry.ps1
+    ├── ui-tweaks.ps1
+    ├── windows-ai.ps1
+    └── xbox-services.ps1
+```
+
+Each module exports three functions (`Invoke-Check` / `Invoke-Apply` / `Invoke-Rollback`) and a `$ModuleMeta` hashtable. Adding a new module is a single `.ps1` file drop — no changes to `enterprise.ps1` needed.
+
+---
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -241,7 +452,8 @@ mybuild-stats/
 ├── scripts/
 │   ├── RemoveWindowsAi.ps1     # Bundled upstream script (zoicware/RemoveWindowsAI)
 │   ├── run-remove-ai.ps1       # Idempotent wrapper — pre-check → COMPLIANT or EXECUTED
-│   └── automation-runs.json    # Run history, per machine (gitignored)
+│   ├── automation-runs.json    # Run history, per machine (gitignored)
+│   └── debloat/                # → see Debloat Scripts section
 ├── types/index.ts              # Shared TypeScript interfaces
 ├── instrumentation.ts          # Next.js startup hook — seed data + start scheduler
 └── ecosystem.config.js         # PM2 production config
