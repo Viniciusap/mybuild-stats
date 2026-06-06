@@ -8,7 +8,7 @@ Two tools for the serious Windows user — pick your path:
 | **Who** | PC enthusiasts, gamers, builders | IT admins, power users |
 | **How** | `npm run dev` → open localhost:3000 | One PowerShell one-liner |
 | **Requires** | Node.js 18+, Windows 10/11 | Windows 10/11, PowerShell 5.1 |
-| **Features** | Hardware gauges, upgrade tracking, price alerts, maintenance automations, dev tools manager | Interactive menu or silent CLI, 10 modules, audit log, GPO-safe |
+| **Features** | Hardware gauges, system optimizations, upgrade tracking, price alerts, maintenance automations, dev tools manager | Interactive menu or silent CLI, 13 modules, audit log, GPO-safe |
 
 ---
 
@@ -74,6 +74,37 @@ Upload or search for a photo of your case or full build.
 ### Live Clock
 
 Real-time clock in the header, ticking every second. Format: `MM/DD/YYYY HH:MM:SS`.
+
+---
+
+### System Optimizations
+
+Collapsible panel that audits 12 Windows performance settings against your detected hardware profile. Results are cached for 5 minutes server-side; click **REFRESH** to force a recheck.
+
+| Check | Category | What it detects |
+|-------|----------|----------------|
+| **HAGS** | GPU | Hardware-Accelerated GPU Scheduling enabled/disabled |
+| **ReBAR** | GPU | Resizable BAR (Smart Access Memory) status |
+| **VBS / HVCI** | System | Virtualization-Based Security — flags if it's hurting GPU performance |
+| **Power Plan** | CPU | Detects Balanced/Power Saver vs High Performance / Ultimate Performance |
+| **CPU Boost** | CPU | AMD Precision Boost / Intel Turbo state |
+| **RAM Speed** | Memory | Actual XMP/EXPO clock vs rated speed — flags if running at stock JEDEC |
+| **RAM Channels** | Memory | Dual-channel vs single-channel configuration |
+| **Mouse Precision** | Input | Enhanced Pointer Precision (acceleration) on/off |
+| **TRIM** | Storage | TRIM enabled for SSDs |
+| **Fast Startup** | System | Hybrid shutdown — can interfere with dual-boot and driver updates |
+| **GPU MSI Mode** | GPU | Message Signaled Interrupts for the primary GPU |
+| **Game Mode** | System | Windows Game Mode enabled/disabled |
+
+Each check shows:
+- **Status badge**: `OPTIMAL` · `SUBOPTIMAL` · `INFO` · `N/A` (hardware not applicable)
+- **Impact level**: HIGH · MEDIUM · LOW
+- **Fix hint** — one-line recommendation when suboptimal
+- **Detail modal** — full explanation, current value, and manual fix steps
+
+Summary bar in the panel header: `N critical · N warnings · All optimized ✓`
+
+> Checks auto-adapt to your hardware profile — a laptop won't be flagged for missing desktop-only features (e.g. GPU MSI Mode on integrated graphics).
 
 ---
 
@@ -214,7 +245,7 @@ Downloads the scripts to `%TEMP%`, runs, cleans up. No install, no cloning requi
   [+] Running as Administrator
 
   Scanning system...
-  10 modules loaded
+  13 modules loaded
 
   SYSTEM SCAN RESULTS
   [PRESENT   ]  Bloatware Apps
@@ -312,6 +343,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& '\\server\share\sc
 | `edge-defaults` | Edge Defaults | Removes Edge from startup, disables news feed and first-run page | Low | Edge GPO policies |
 | `privacy` | Privacy Settings | 16 registry keys: advertising ID, online speech, inking, activity history, location, Find My Device, delivery optimization | Low | Location/FindMyDevice MDM |
 | `ui-tweaks` | UI / Taskbar Tweaks | Win10 context menu, widgets, Chat icon, Snap Layouts, search highlights, 365 ads, Game DVR, Task View | Low | — |
+| `performance` | Performance Tweaks | Visual effects set to best performance, disables Aero transparency, adjusts foreground/background priority | Low | — |
+| `scheduled-tasks` | Scheduled Tasks | Disables telemetry-related and consumer-experience scheduled tasks | Low | — |
+| `ui-extras` | UI Extras | Additional taskbar and Start menu tweaks: News and Interests, Meet Now, Search box visibility | Low | — |
 
 #### Audit log
 
@@ -359,9 +393,12 @@ scripts/debloat/
     ├── cortana.ps1
     ├── edge-defaults.ps1
     ├── onedrive.ps1
+    ├── performance.ps1
     ├── privacy.ps1
+    ├── scheduled-tasks.ps1
     ├── teams-consumer.ps1
     ├── telemetry.ps1
+    ├── ui-extras.ps1
     ├── ui-tweaks.ps1
     ├── windows-ai.ps1
     └── xbox-services.ps1
@@ -377,12 +414,13 @@ Each module exports three functions (`Invoke-Check` / `Invoke-Apply` / `Invoke-R
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 14.2 (App Router) |
+| Framework | Next.js 16.2 (App Router, Turbopack) |
 | Language | TypeScript 5 |
 | Styling | Tailwind CSS 3 (custom dark slate theme) |
 | Hardware reads | `systeminformation` 5 |
 | Data fetching (client) | SWR 2 |
-| Scheduling | `node-cron` 3 |
+| Input validation | Zod 4 |
+| Scheduling | `node-cron` 4 |
 | Icons | `lucide-react` |
 | Image search | DuckDuckGo Images (no API key required) |
 | Price search | Serper.dev Google Shopping (optional) |
@@ -406,19 +444,25 @@ mybuild-stats/
 │       ├── hardware/           # GET — live hardware snapshot
 │       ├── snapshot/           # POST — save snapshot to JSON
 │       ├── prices/             # GET — cached price records + alerts
-│       ├── prices/trigger/     # POST — force price check
-│       ├── timeline/           # GET — build events
-│       ├── component-image/    # GET status / POST fetch & cache image
+│       ├── prices/trigger/     # POST — force price check / GET running status
+│       ├── optimizations/      # GET — run optimization checks / POST force refresh
+│       ├── timeline/           # GET/POST — build events
+│       ├── component-image/    # GET status / POST fetch & cache / DELETE clear
 │       ├── case-search/        # GET config / POST save / DELETE clear
 │       ├── image-search/       # GET — DuckDuckGo image search proxy
 │       ├── pc-photo/           # POST upload / DELETE clear
 │       ├── automations/        # GET task list / POST run & stream
 │       ├── automations/history/ # GET run history (?taskId=)
 │       ├── tools/              # GET — detect installed tools + versions
-│       ├── tools/updates/      # GET — winget upgrade parse → upgradeable IDs
-│       └── tools/install/      # POST — stream winget install/upgrade
+│       ├── tools/install/      # POST — stream winget install/upgrade
+│       └── tools/debug/        # GET — spawn diagnostics (dev only)
 ├── components/
 │   ├── ComponentDash.tsx       # CPU / GPU / RAM / Storage cards + gauges
+│   ├── OptimizationsPanel.tsx  # System optimizations collapsible panel
+│   ├── OptimizationCard.tsx    # Individual check card
+│   ├── OptimizationModal.tsx   # Check detail modal with fix steps
+│   ├── UpgradeDetailModal.tsx  # Upgrade target detail modal
+│   ├── Modal.tsx               # Base modal primitive
 │   ├── Gauge.tsx               # SVG 270° speedometer
 │   ├── TabNav.tsx              # Dashboard / Automations / Tools navigation
 │   ├── LiveClock.tsx           # Real-time ticking clock
@@ -431,10 +475,17 @@ mybuild-stats/
 │   ├── PriceAlertBanner.tsx    # Price alert notifications
 │   ├── GlowCard.tsx            # Base card with accent border
 │   ├── NeonProgress.tsx        # Horizontal progress bar
-│   └── StatBadge.tsx           # Online / warning / error badge
+│   ├── StatBadge.tsx           # Online / warning / error badge
+│   └── index.ts                # Barrel exports
 ├── lib/
 │   ├── styles.ts               # Shared Tailwind class constants (btn, badge, card, text, …)
 │   ├── hardware.ts             # systeminformation wrapper → HardwareSnapshot
+│   ├── device-profile.ts       # Hardware profile builder for optimization checks
+│   ├── optimizations/
+│   │   ├── index.ts            # runOptimizationChecks() — orchestrator + cache
+│   │   ├── helpers.ts          # Shared registry / WMI read helpers
+│   │   ├── dxdiag-cache.ts     # DxDiag XML cache (GPU MSI mode detection)
+│   │   └── checks/             # 12 individual check modules
 │   ├── automations.ts          # Task registry (id, command, args, requiresAdmin)
 │   ├── automation-history.ts   # appendRun / readHistory — ring-buffer JSON persistence
 │   ├── buildSpecs.ts           # formatBuildSpecs() — clipboard markdown
@@ -442,7 +493,11 @@ mybuild-stats/
 │   ├── scheduler.ts            # node-cron 12h price check schedule
 │   ├── db.ts                   # JSON file read/write helpers
 │   ├── imageCache.ts           # DuckDuckGo search + image download/cache
+│   ├── spawn-env.ts            # safeSpawnEnv() — strips secrets from child process env
 │   └── utils.ts                # formatAge, formatBRL, getUpgradeTiming, inferRamBrand, …
+├── types/
+│   ├── index.ts                # Core TypeScript interfaces (HardwareSnapshot, etc.)
+│   └── optimization.ts         # Optimization check types (DeviceProfile, CheckResult, …)
 ├── data/
 │   ├── upgrade-path.json       # ✏️  Edit per PC — purchase dates, prices, upgrade targets
 │   ├── build-timeline.json     # ✏️  Edit per PC — build history events
@@ -454,8 +509,7 @@ mybuild-stats/
 │   ├── run-remove-ai.ps1       # Idempotent wrapper — pre-check → COMPLIANT or EXECUTED
 │   ├── automation-runs.json    # Run history, per machine (gitignored)
 │   └── debloat/                # → see Debloat Scripts section
-├── types/index.ts              # Shared TypeScript interfaces
-├── instrumentation.ts          # Next.js startup hook — seed data + start scheduler
+├── instrumentation.ts          # Next.js startup hook — seed data, start scheduler, warm cache
 └── ecosystem.config.js         # PM2 production config
 ```
 
@@ -472,19 +526,42 @@ mybuild-stats/
 ### Install & Run
 
 ```bash
-git clone <repo>
+git clone https://github.com/Viniciusap/mybuild-stats.git
 cd mybuild-stats
 
 npm install
 
-# Optional: add Serper.dev key for price tracking
+# Copy env template and configure (optional but recommended)
 cp .env.local.example .env.local
-# Edit .env.local → SERPER_API_KEY=your_key_here
+# Edit .env.local with your values
 
 npm run dev
 ```
 
 Open `http://localhost:3000`.
+
+### Environment Variables
+
+```bash
+# .env.local
+
+# Serper.dev API key — enables Google Shopping price search
+# Free: https://serper.dev (2,500 queries/month)
+# If omitted, falls back to DuckDuckGo (lower quality results)
+SERPER_API_KEY=your_key_here
+
+# Price check interval in hours (default: 12)
+PRICE_CHECK_INTERVAL_HOURS=12
+
+# Ntfy.sh topic for push notifications on price alerts
+# Create a free topic at https://ntfy.sh
+# NTFY_TOPIC=mybuild-alerts-yourname
+
+# Optional API secret — protects mutation routes (POST/DELETE)
+# When set, all state-modifying requests must include: x-api-key: <value>
+# Leave unset for local-only use
+# API_SECRET=change-me-to-a-strong-random-string
+```
 
 ### Production (PM2)
 
@@ -553,13 +630,13 @@ Only two files need editing when moving to a new machine:
 ]
 ```
 
-All other data (hardware reads, images, snapshots, prices) is handled automatically.
+All other data (hardware reads, images, snapshots, prices, optimization cache) is handled automatically.
 
 ---
 
 ## Portability
 
-Everything hardware-related is detected dynamically via `systeminformation` — CPU brand, GPU name, RAM part numbers, SSD model, motherboard, BIOS. Component image search queries are built from detected names, not hardcoded strings. The dashboard works on any Windows PC without code changes; only `data/upgrade-path.json` needs updating with your purchase history and upgrade targets.
+Everything hardware-related is detected dynamically via `systeminformation` — CPU brand, GPU name, RAM part numbers, SSD model, motherboard, BIOS. Component image search queries are built from detected names, not hardcoded strings. The System Optimizations panel auto-adapts to your hardware profile (laptop vs desktop, GPU vendor, storage type). The dashboard works on any Windows PC without code changes; only `data/upgrade-path.json` needs updating with your purchase history and upgrade targets.
 
 ---
 
