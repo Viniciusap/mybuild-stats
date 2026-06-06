@@ -1,11 +1,36 @@
-import { exec } from 'node:child_process'
-import { promisify } from 'node:util'
+import { spawn } from 'node:child_process'
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const execAsync = promisify(exec)
+function spawnOutput(cmd: string, args: string[]): Promise<string> {
+  return new Promise((resolve) => {
+    const proc = spawn(cmd, args, { shell: false, windowsHide: true })
+    let out = ''
+    proc.stdout?.on('data', (d: Buffer) => { out += d.toString() })
+    proc.stderr?.on('data', (d: Buffer) => { out += d.toString() })
+    proc.on('close', () => resolve(out.trim()))
+    proc.on('error', () => resolve(''))
+  })
+}
+
+// Fallback for .cmd wrappers (npm, yarn, pnpm, etc.) — runs via powershell to avoid cmd.exe.
+// Only returns output on exit code 0 to avoid treating PS "not recognized" errors as versions.
+function spawnViaPowerShell(cmd: string, args: string[]): Promise<string> {
+  return new Promise((resolve) => {
+    const proc = spawn(
+      'powershell.exe',
+      ['-NonInteractive', '-NoProfile', '-Command', `& ${cmd} ${args.join(' ')} 2>&1`],
+      { shell: false, windowsHide: true }
+    )
+    let out = ''
+    proc.stdout?.on('data', (d: Buffer) => { out += d.toString() })
+    proc.stderr?.on('data', (d: Buffer) => { out += d.toString() })
+    proc.on('close', (code) => resolve(code === 0 ? out.trim() : ''))
+    proc.on('error', () => resolve(''))
+  })
+}
 
 export interface ToolDef {
   id: string
@@ -52,6 +77,23 @@ export const TOOLS: ToolDef[] = [
   { id: 'make',      label: 'make',       description: 'Build automation tool',        category: 'dev-tools', versionArgs: ['--version'],               link: 'https://www.gnu.org/software/make/manual/',         wingetId: 'GnuWin32.Make' },
 ]
 
+// Phrases that indicate the tool isn't installed (English + Portuguese Windows)
+const NOT_INSTALLED_PHRASES = [
+  'was not found',
+  'not recognized',
+  'cannot find',
+  'no such file',
+  'app execution alias',
+  'não é reconhecido',  // PT: "is not recognized"
+  'não foi encontrado', // PT: "was not found"
+  'não pode ser encontrado', // PT: "cannot be found"
+]
+
+function isNotInstalledOutput(output: string): boolean {
+  const lower = output.toLowerCase()
+  return NOT_INSTALLED_PHRASES.some((p) => lower.includes(p))
+}
+
 function extractVersion(output: string): string | null {
   const line = output.split('\n')[0].trim()
   const match = line.match(/(\d+\.\d+[\.\d]*)/)
@@ -63,24 +105,14 @@ function extractVersion(output: string): string | null {
 async function checkTool(def: ToolDef) {
   const { versionArgs, ...info } = def
 
-  try {
-    await execAsync(`where ${def.id}`, { timeout: 3000 })
-  } catch {
-    return { ...info, installed: false, version: null }
-  }
+  // Try direct spawn first (works for .exe — no cmd.exe needed)
+  let out = await spawnOutput(def.id, versionArgs)
 
-  try {
-    const { stdout, stderr } = await execAsync(
-      `${def.id} ${versionArgs.join(' ')}`,
-      { timeout: 5000 },
-    )
-    const version = extractVersion(stdout || stderr || '')
-    return { ...info, installed: true, version }
-  } catch (e) {
-    const err = e as { stdout?: string; stderr?: string }
-    const version = extractVersion(err.stderr || err.stdout || '')
-    return { ...info, installed: true, version }
-  }
+  // If empty, retry with .cmd extension via PowerShell (npm, yarn, pnpm, etc.)
+  if (!out) out = await spawnViaPowerShell(def.id, versionArgs)
+
+  if (!out || isNotInstalledOutput(out)) return { ...info, installed: false, version: null }
+  return { ...info, installed: true, version: extractVersion(out) }
 }
 
 export async function GET() {

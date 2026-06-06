@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process'
 import { NextRequest, NextResponse } from 'next/server'
 import { TOOLS } from '@/app/api/tools/route'
+import { safeSpawnEnv } from '@/lib/spawn-env'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
       const proc = spawn(
         'winget',
         [action, '--id', tool.wingetId!, '--accept-package-agreements', '--accept-source-agreements'],
-        { shell: false, windowsHide: true, env: process.env },
+        { shell: false, windowsHide: true, env: safeSpawnEnv() },
       )
 
       let stdoutBuf = ''

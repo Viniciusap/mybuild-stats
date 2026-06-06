@@ -3,12 +3,19 @@ import fs from 'fs'
 import path from 'path'
 import { fetchAndCacheImage, searchDDGImages, searchSerperImages } from '@/lib/imageCache'
 import { getLatestSnapshot } from '@/lib/db'
+import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 const IMAGE_DIR = path.join(process.cwd(), 'public', 'component-images')
-const COMPONENT_IDS = ['cpu', 'gpu', 'ram', 'storage']
+const COMPONENT_IDS = ['cpu', 'gpu', 'ram', 'storage'] as const
+
+const ComponentImagePostSchema = z.object({
+  id: z.enum(COMPONENT_IDS),
+  query: z.string().max(300).optional(),
+  imageUrl: z.string().url().max(2000).optional(),
+})
 
 // Build search queries from DETECTED hardware — works on any PC
 function buildQueries(): Record<string, string> {
@@ -44,12 +51,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as { id: string; query?: string; imageUrl?: string }
-    const { id, query, imageUrl } = body
-
-    if (!COMPONENT_IDS.includes(id)) {
-      return NextResponse.json({ error: 'Componente desconhecido' }, { status: 400 })
-    }
+    const parsed = ComponentImagePostSchema.safeParse(await request.json())
+    if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+    const { id, query, imageUrl } = parsed.data
 
     if (!fs.existsSync(IMAGE_DIR)) fs.mkdirSync(IMAGE_DIR, { recursive: true })
 

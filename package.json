@@ -9,22 +9,23 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "14.2.29",
-    "react": "^18",
-    "react-dom": "^18",
-    "systeminformation": "^5.23.5",
-    "swr": "^2.2.5",
-    "node-cron": "^3.0.3",
     "clsx": "^2.1.1",
-    "lucide-react": "^0.441.0"
+    "lucide-react": "^1.14.0",
+    "next": "^16.2.4",
+    "node-cron": "^4.2.1",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "swr": "^2.4.1",
+    "systeminformation": "^5.23.5",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/node-cron": "^3.0.11",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.0.1",
-    "postcss": "^8",
+    "postcss": "^8.5.10",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }

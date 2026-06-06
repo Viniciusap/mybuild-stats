@@ -42,5 +42,17 @@ export async function register() {
     }
 
     startScheduler()
+
+    // Pre-warm optimization cache in background (avoids slow first-load)
+    void (async () => {
+      try {
+        await new Promise(r => setTimeout(r, 3000))
+        const { runOptimizationChecks } = await import('./lib/optimizations/index')
+        await runOptimizationChecks()
+        console.log('[startup] Optimization cache warmed.')
+      } catch (e) {
+        console.warn('[startup] Optimization pre-warm failed:', e)
+      }
+    })()
   }
 }

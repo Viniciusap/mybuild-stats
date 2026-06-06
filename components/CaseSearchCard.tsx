@@ -35,6 +35,7 @@ export default function CaseSearchCard() {
     setNoApi(false)
     try {
       const res = await fetch(`/api/case-search?q=${encodeURIComponent(query.trim())}`)
+      if (!res.ok) { setNoApi(true); return }
       const data = await res.json()
       if (data.error) { setNoApi(true); return }
       setResults(data.images ?? [])

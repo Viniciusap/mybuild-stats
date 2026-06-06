@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { spawn } from 'node:child_process'
 import { AUTOMATION_TASKS } from '@/lib/automations'
 import { appendRun, type RunEntry } from '@/lib/automation-history'
+import { safeSpawnEnv } from '@/lib/spawn-env'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
       const proc = spawn(task.command, task.args, {
         shell: false,
         windowsHide: true,
-        env: process.env,
+        env: safeSpawnEnv(),
       })
 
       const send = (line: string) => {
@@ -84,7 +85,8 @@ export async function POST(req: NextRequest) {
         const durationMs = new Date(endedAt).getTime() - new Date(startedAt).getTime()
         void appendRun({ taskId: task.id, startedAt, endedAt, durationMs, status: 'error', exitCode: -1, lineCount })
 
-        send(`[ERRO] Falha ao iniciar processo: ${err.message}`)
+        console.error('[api/automations] spawn error:', err.message)
+        send(`[ERRO] Falha ao iniciar processo`)
         send(`__EXIT__-1`)
         try { controller.close() } catch { /* already closed */ }
       })

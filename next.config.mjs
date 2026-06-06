@@ -1,18 +1,32 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+        ],
+      },
+    ]
+  },
+  serverExternalPackages: [
+    'systeminformation',
+    'osx-temperature-sensor',
+    'macos-temperature-sensor',
+  ],
   webpack: (config, { isServer }) => {
     if (isServer) {
-      // systeminformation has optional macOS-only native deps — ignore on Windows/Linux
       config.externals.push('osx-temperature-sensor', 'macos-temperature-sensor')
     } else {
-      // Never bundle systeminformation on the client
       config.externals = config.externals || []
       config.externals.push('systeminformation')
     }
     return config
-  },
-  experimental: {
-    instrumentationHook: true,
   },
 }
 

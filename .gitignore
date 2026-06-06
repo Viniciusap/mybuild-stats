@@ -30,6 +30,8 @@ data/snapshots.json
 data/build-config.json
 data/events.json
 data/price-cache.json
+data/prices.json
+data/optimizations-cache.json
 
 # cached images (downloaded at runtime)
 public/component-images/

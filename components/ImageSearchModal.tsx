@@ -40,6 +40,7 @@ export default function ImageSearchModal({
     setError(null)
     try {
       const res = await fetch(`/api/image-search?q=${encodeURIComponent(q.trim())}`)
+      if (!res.ok) { setError('Search failed. Try again.'); return }
       const data = await res.json()
       const imgs = (data.images ?? []) as ImageResult[]
       setResults(imgs)

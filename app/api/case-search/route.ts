@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 import { fetchAndCacheImage, searchDDGImages, searchSerperImages } from '@/lib/imageCache'
+import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -10,6 +11,11 @@ const CONFIG_PATH = path.join(process.cwd(), 'data', 'build-config.json')
 const CASE_IMAGE_PATH = path.join(process.cwd(), 'public', 'case-image.jpg')
 
 interface BuildConfig { case: { name: string; hasImage: boolean } }
+
+const CaseSearchPostSchema = z.object({
+  name: z.string().max(200).optional(),
+  imageUrl: z.string().url().max(2000).optional(),
+})
 
 function readConfig(): BuildConfig {
   try { return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8')) as BuildConfig }
@@ -25,6 +31,7 @@ export async function GET(request: Request) {
   const q = searchParams.get('q')
 
   if (q) {
+    if (q.length > 200) return NextResponse.json({ error: 'Query too long' }, { status: 400 })
     const apiKey = process.env.SERPER_API_KEY
     // DDG first (no key needed), Serper if available
     const results = apiKey
@@ -49,13 +56,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as { name?: string; imageUrl?: string }
+    const parsed = CaseSearchPostSchema.safeParse(await request.json())
+    if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+    const { name, imageUrl } = parsed.data
     const config = readConfig()
 
-    if (body.name !== undefined) config.case.name = body.name
+    if (name !== undefined) config.case.name = name
 
-    if (body.imageUrl) {
-      const ok = await fetchAndCacheImage(body.imageUrl, CASE_IMAGE_PATH)
+    if (imageUrl) {
+      const ok = await fetchAndCacheImage(imageUrl, CASE_IMAGE_PATH)
       if (!ok) return NextResponse.json({ error: 'Download falhou' }, { status: 400 })
       config.case.hasImage = true
     }

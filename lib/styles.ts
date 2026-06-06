@@ -38,7 +38,7 @@ export const card = {
   base:    'rounded-lg border bg-cyber-panel/80',
   default: 'border-cyber-border',
   active:  'border-cyber-cyan/50',
-  muted:   'border-cyber-border/30 opacity-50',
+  muted:   'border-cyber-border/40 opacity-75',
 } as const
 
 // ── Typography ───────────────────────────────────────────────────────────────

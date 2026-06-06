@@ -8,6 +8,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const q = searchParams.get('q')
   if (!q?.trim()) return NextResponse.json({ images: [] })
+  if (q.length > 200) return NextResponse.json({ error: 'Query too long' }, { status: 400 })
 
   const apiKey = process.env.SERPER_API_KEY
   const results = apiKey

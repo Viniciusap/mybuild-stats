@@ -96,7 +96,7 @@ export const AUTOMATION_TASKS: AutomationTask[] = [
     label: 'Remove Windows AI',
     description: 'Pre-checks AppX packages, registry policies and reapply task. If clean → COMPLIANT (no action). Otherwise removes Copilot, Recall, AI Fabric, Voice Access and AI AppX, restores legacy apps and persists cleanup across Windows updates. Source: zoicware/RemoveWindowsAI.',
     command: 'powershell',
-    args: ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', REMOVE_AI_WRAPPER],
+    args: ['-NoProfile', '-ExecutionPolicy', 'RemoteSigned', '-File', REMOVE_AI_WRAPPER],
     requiresAdmin: true,
     estimatedSeconds: 900,
   },
