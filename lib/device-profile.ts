@@ -45,15 +45,16 @@ async function findNvidiaSmi(): Promise<string | null> {
     'C:\\Windows\\System32\\nvidia-smi.exe',
     'C:\\Program Files\\NVIDIA Corporation\\NVSMI\\nvidia-smi.exe',
   ]
-  for (const c of candidates) {
-    const ok = await new Promise<boolean>((resolve) => {
+  // Probe all candidates in parallel with 2s timeout each (was sequential → up to 9s)
+  const results = await Promise.all(candidates.map(c =>
+    new Promise<string | null>((resolve) => {
       const proc = spawn(c, ['--version'], { shell: false, windowsHide: true })
-      proc.on('close', (code) => resolve(code === 0))
-      proc.on('error', () => resolve(false))
+      const timer = setTimeout(() => { proc.kill(); resolve(null) }, 2000)
+      proc.on('close', (code) => { clearTimeout(timer); resolve(code === 0 ? c : null) })
+      proc.on('error', () => { clearTimeout(timer); resolve(null) })
     })
-    if (ok) return c
-  }
-  return null
+  ))
+  return results.find(r => r !== null) ?? null
 }
 
 async function checkIsAdmin(): Promise<boolean> {

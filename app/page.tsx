@@ -48,10 +48,10 @@ export default function Dashboard() {
   }
 
   const { data: hw, isLoading: hwLoading, mutate: refreshHw } =
-    useSWR<HardwareSnapshot>('/api/hardware', fetcher, { refreshInterval: 15_000 })
+    useSWR<HardwareSnapshot>('/api/hardware', fetcher, { refreshInterval: 15_000, revalidateOnFocus: false })
 
   const { data: pricesData, isLoading: pricesLoading, mutate: refreshPrices } =
-    useSWR<PricesData>('/api/prices', fetcher, { refreshInterval: 300_000 })
+    useSWR<PricesData>('/api/prices', fetcher, { refreshInterval: 300_000, revalidateOnFocus: false })
 
   const { data: timelineData, mutate: refreshTimeline } =
     useSWR<TimelineData>('/api/timeline', fetcher)

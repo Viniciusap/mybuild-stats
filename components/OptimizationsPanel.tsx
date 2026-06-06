@@ -49,7 +49,7 @@ export default function OptimizationsPanel() {
   const { data, isLoading, mutate } = useSWR<OptimizationsResult>(
     '/api/optimizations',
     fetcher,
-    { refreshInterval: 5 * 60 * 1000 }  // 5 min — checks are cached server-side
+    { refreshInterval: 5 * 60 * 1000, revalidateOnFocus: false }  // 5 min — checks are cached server-side
   )
 
   async function forceRefresh() {
