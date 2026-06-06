@@ -268,7 +268,7 @@ Write-Host ""
 # ── Reusable command ──────────────────────────────────────────────────────────
 if (-not $NonInteractive -and $selected.Count -gt 0) {
     $moduleIds  = ($selected | ForEach-Object { $_.Id }) -join ','
-    $launchUrl  = 'https://raw.githubusercontent.com/Viniciusap/mybuild-stats/master/scripts/debloat/launcher.ps1'
+    $launchUrl  = 'https://raw.githubusercontent.com/Viniciusap/enterprise-debloat/master/launcher.ps1'
     $tmpFile    = 'C:\Windows\Temp\debloat.ps1'
     $reuse = "powershell -ExecutionPolicy Bypass -Command `"iwr '$launchUrl' -OutFile '$tmpFile' -UseBasicParsing; & '$tmpFile' -NonInteractive -Modules '$moduleIds'`""
 

@@ -1,7 +1,6 @@
 # preview.ps1 - visual preview of all enterprise debloat CLI screens
 $ScriptDir = Split-Path $MyInvocation.MyCommand.Path -ErrorAction SilentlyContinue
 if (-not $ScriptDir) { $ScriptDir = $PSScriptRoot }
-if (-not $ScriptDir) { $ScriptDir = "C:\Dev\mybuild-stats\scripts\debloat" }
 
 . (Join-Path $ScriptDir 'core\UI.ps1')
 

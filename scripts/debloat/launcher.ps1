@@ -4,7 +4,7 @@
 # No cloning required.
 #
 # INTERACTIVE (shows menu):
-#   powershell -ExecutionPolicy Bypass -Command "iwr 'https://raw.githubusercontent.com/Viniciusap/mybuild-stats/master/scripts/debloat/launcher.ps1' -OutFile \"$env:TEMP\debloat.ps1\" -UseBasicParsing; & \"$env:TEMP\debloat.ps1\""
+#   powershell -ExecutionPolicy Bypass -Command "iwr 'https://raw.githubusercontent.com/Viniciusap/enterprise-debloat/master/launcher.ps1' -OutFile \"$env:TEMP\debloat.ps1\" -UseBasicParsing; & \"$env:TEMP\debloat.ps1\""
 #
 # NON-INTERACTIVE (specific modules, no menu):
 #   ... & "$env:TEMP\debloat.ps1" -NonInteractive -Modules 'telemetry,cortana,bloatware'
@@ -20,11 +20,11 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction S
 $ErrorActionPreference = 'SilentlyContinue'
 [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 
-$RepoZipUrl = 'https://github.com/Viniciusap/mybuild-stats/archive/refs/heads/master.zip'
+$RepoZipUrl = 'https://github.com/Viniciusap/enterprise-debloat/archive/refs/heads/master.zip'
 $ZipPath    = Join-Path $env:TEMP 'debloat-repo.zip'
 $ExtractTo  = $env:TEMP
-$ExtractDir = Join-Path $env:TEMP 'mybuild-stats-master'
-$ScriptPath = Join-Path $ExtractDir 'scripts\debloat\enterprise.ps1'
+$ExtractDir = Join-Path $env:TEMP 'enterprise-debloat-master'
+$ScriptPath = Join-Path $ExtractDir 'enterprise.ps1'
 
 Write-Host ""
 Write-Host "  Enterprise Debloat Launcher" -ForegroundColor Cyan
