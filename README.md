@@ -325,8 +325,7 @@ mybuild-stats/
 ├── scripts/
 │   ├── RemoveWindowsAi.ps1     # Bundled upstream script (zoicware/RemoveWindowsAI)
 │   ├── run-remove-ai.ps1       # Idempotent wrapper — pre-check → COMPLIANT or EXECUTED
-│   ├── automation-runs.json    # Run history, per machine (gitignored)
-│   └── debloat/ → moved to github.com/Viniciusap/enterprise-debloat
+│   └── automation-runs.json    # Run history, per machine (gitignored)
 ├── instrumentation.ts          # Next.js startup hook — seed data, start scheduler, warm cache
 └── ecosystem.config.js         # PM2 production config
 ```
